@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">My Peer To Peer</string>
+
+    <string name="status_unknown">Unknown</string>
+    <string name="status_connecting">Connecting …</string>
+    <string name="status_connected">Connected</string>
+    <string name="status_disconnected">Disconnected</string>
+    <string name="status_matching">Matching …</string>
+    <string name="status_failed">Failed</string>
+    <string name="status_finished">Finished</string>
+    <string name="status_closing">Closing</string>
+</resources>
