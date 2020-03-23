@@ -16,11 +16,6 @@
         android:textAppearance="@style/TextAppearance.AppCompat.Headline"
         android:textColor="@android:color/background_light"
         android:text="Connected" />
-    <Button
-        android:id="@+id/viewCamera1Button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text=" Camera1 "/>
    <Button
         android:id="@+id/viewCamera2Button"
         android:layout_width="wrap_content"

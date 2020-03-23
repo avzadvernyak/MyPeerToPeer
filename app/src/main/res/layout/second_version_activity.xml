@@ -10,7 +10,6 @@
         android:id="@+id/sheet"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-
         android:visibility="invisible"
         app:layout_behavior="com.google.android.material.transformation.FabTransformationSheetBehavior"
        >
@@ -24,6 +23,7 @@
                 android:id="@+id/usersRecyclerView"
                 android:layout_width="0dp"
                 android:layout_height="0dp"
+                android:background="@color/design_default_color_secondary"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintHeight_default="percent"
@@ -44,9 +44,18 @@
         android:layout_gravity="bottom|end"
         android:layout_margin="20dp"
         app:srcCompat="@android:drawable/ic_menu_call" />
-
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/hangUpFAB"
+        style="@style/Widget.MaterialComponents.FloatingActionButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:fabSize="auto"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="20dp"
+        app:srcCompat="@drawable/ic_call_end" />
 
     <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/mainConstraintLayout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         tools:context=".ui.SecondVerActivity">
@@ -74,11 +83,11 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/statusWSTextView" />
 
+        <!--android:visibility="invisible"-->
         <org.webrtc.SurfaceViewRenderer
             android:id="@+id/remote_view"
             android:layout_width="0dp"
             android:layout_height="0dp"
-            android:visibility="invisible"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"

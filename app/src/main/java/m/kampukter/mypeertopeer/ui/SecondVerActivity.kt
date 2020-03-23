@@ -1,7 +1,9 @@
 package m.kampukter.mypeertopeer.ui
 
 import android.Manifest
+import android.content.Context
 import android.content.pm.PackageManager
+import android.media.AudioManager
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -10,45 +12,46 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.Observer
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import kotlinx.android.synthetic.main.second_version_activity.*
-import m.kampukter.mypeertopeer.MyViewModel
 import m.kampukter.mypeertopeer.R
 import m.kampukter.mypeertopeer.RTCClient
+import m.kampukter.mypeertopeer.data.NegotiationEvent
 import m.kampukter.mypeertopeer.data.NegotiationMessage
-import m.kampukter.mypeertopeer.data.dto.SignalingWebSocketAPI
-import org.koin.androidx.viewmodel.ext.android.viewModel
-import org.webrtc.IceCandidate
-import org.webrtc.MediaStream
-import org.webrtc.SessionDescription
+import m.kampukter.mypeertopeer.data.dto.NegotiationAPI
+import org.koin.android.ext.android.inject
+import org.webrtc.*
 import java.net.URL
-
-//= "user_${Build.MODEL}"
 
 val myName: String
     get() = "user_${Build.BOOTLOADER}"
 
 class SecondVerActivity : AppCompatActivity() {
 
-    private val viewModel by viewModel<MyViewModel>()
+    private val service: NegotiationAPI by inject()
 
     private lateinit var rtcClient: RTCClient
 
     private var usersAdapter: UsersAdapter? = null
     private var lastUser: String? = null
 
-
+    private var audioManager: AudioManager? = null
+    private var savedAudioMode: Int? = null
+    private var savedMicrophoneState: Boolean? = null
 
     private val sdpObserver = object : AppSdpObserver() {
+        override fun onSetSuccess() {
+            super.onSetSuccess()
+            Log.d("blablabla", "onSetSuccess")
+        }
+
         override fun onCreateSuccess(p0: SessionDescription?) {
             super.onCreateSuccess(p0)
-            //Log.d("blablabla", "Send offer $p0 + ${p0?.type.toString()} + user-$lastUser")
-            lastUser?.let { user ->
 
+            lastUser?.let { user ->
                 p0?.let {
-                    viewModel.send(
+                    service.send(
                         NegotiationMessage(
                             to = user,
                             from = myName,
@@ -66,79 +69,52 @@ class SecondVerActivity : AppCompatActivity() {
         setContentView(R.layout.second_version_activity)
 
         userTextView.text = myName
-        lastUser = "user_and_2"
+        hangUpFAB.visibility = View.GONE
         checkCameraPermission()
+
+        service.onNegotiationEvent = this::negotiationMessageListener
+
+        //
+        audioManager = this.getSystemService(Context.AUDIO_SERVICE) as AudioManager?
+        savedAudioMode = audioManager?.mode
+        audioManager?.mode = AudioManager.MODE_IN_COMMUNICATION
+        savedMicrophoneState = audioManager?.isMicrophoneMute
+        audioManager?.isMicrophoneMute = false
+        //
 
         usersAdapter = UsersAdapter { item ->
             //Log.d("blablabla", "Выбран  -> $item")
             callFAB.isExpanded = false
+            mainConstraintLayout.visibility = View.VISIBLE
             lastUser = item
             rtcClient.call(sdpObserver)
+
         }
+
         with(usersRecyclerView) {
             layoutManager = LinearLayoutManager(context, RecyclerView.VERTICAL, false)
             adapter = usersAdapter
         }
 
-        viewModel.setWsServerURL(URL("http://176.37.84.130:8080/$myName"))
-        viewModel.connectToWS()
-        viewModel.connectionStatusLiveData.observe(this, Observer {
-            when (it) {
-                is SignalingWebSocketAPI.ConnectionStatus.Connected -> {
-                    statusWSTextView.text = getString(R.string.status_connected)
-                    callFAB.visibility = View.VISIBLE
-                }
-                is SignalingWebSocketAPI.ConnectionStatus.Failed -> {
-                    statusWSTextView.text = getString(R.string.status_failed)
-                }
-                is SignalingWebSocketAPI.ConnectionStatus.Disconnected -> {
-                    statusWSTextView.text = getString(R.string.status_disconnected)
-                }
-                is SignalingWebSocketAPI.ConnectionStatus.Connecting -> {
-                    statusWSTextView.text = getString(R.string.status_connecting)
-                }
-                is SignalingWebSocketAPI.ConnectionStatus.Closing -> {
-                    statusWSTextView.text = getString(R.string.status_closing)
-                }
-            }
-        })
-        viewModel.webSocketMessageLiveData.observe(this, Observer { message ->
-            //Log.d("blablabla", "Что то in UI $message")
-            Log.d("blablabla", "Что то in UI $message ${viewModel.webSocketMessageLiveData}")
-            when (message) {
-                is SignalingWebSocketAPI.Message.AnswerReceived -> {
-                    //Log.d("blablabla", "AnswerReceived in UI")
-                    rtcClient.onRemoteSessionReceived(message.sessionDescription)
-                    remote_view_loading.visibility = View.GONE
-                }
-                is SignalingWebSocketAPI.Message.OfferReceived -> {
-                    Log.d("blablabla", "OfferReceived in UI")
-                    rtcClient.onRemoteSessionReceived(message.sessionDescription)
-                    rtcClient.answer(sdpObserver)
-                    remote_view_loading.visibility = View.GONE
-                }
-                is SignalingWebSocketAPI.Message.IceCandidateReceived -> {
-                    Log.d("blablabla", "IceCandidateReceived in UI")
-                    rtcClient.addIceCandidate(message.iceCandidate)
-                }
-                is SignalingWebSocketAPI.Message.Text -> {
-                    Log.d("blablabla", "Text in UI -> ${message.content}")
-                }
-                is SignalingWebSocketAPI.Message.DiscoveryReceived -> {
-                    Log.d("blablabla", "Discovery in UI -> ${message.content}")
-                    usersAdapter?.setList(message.content)
-                }
-                else -> {Log.d("blablabla", "Фигня in UI ")}
-            }
-        })
-
-
+        service.connect()
         sheet.setOnClickListener {
             callFAB.isExpanded = false
+            mainConstraintLayout.visibility = View.VISIBLE
         }
         callFAB.setOnClickListener {
             callFAB.isExpanded = true
+            mainConstraintLayout.visibility = View.GONE
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        local_view.release()
+        remote_view.release()
+        rtcClient.disposeAll()
+        service.disconnect()
+        savedAudioMode?.let { audioManager?.mode = it }
+        savedMicrophoneState?.let { audioManager?.isMicrophoneMute = it }
     }
 
     private fun checkCameraPermission() {
@@ -159,12 +135,9 @@ class SecondVerActivity : AppCompatActivity() {
             object : PeerConnectionObserver() {
                 override fun onIceCandidate(p0: IceCandidate?) {
                     super.onIceCandidate(p0)
-
-                    rtcClient.addIceCandidate(p0)
-                    //Log.d("blablabla", "Send onIceCandidate $p0 to $lastUser")
                     lastUser?.let { user ->
                         p0?.let {
-                            viewModel.send(
+                            service.send(
                                 NegotiationMessage(
                                     type = "serverUrl",
                                     to = user,
@@ -176,14 +149,70 @@ class SecondVerActivity : AppCompatActivity() {
                             )
                         }
                     }
-
-
+                    rtcClient.addIceCandidate(p0)
                 }
 
                 override fun onAddStream(p0: MediaStream?) {
                     super.onAddStream(p0)
+                    Log.d("blablabla", "onAddStream -> ${p0?.videoTracks?.get(0)}")
+
                     p0?.videoTracks?.get(0)?.addSink(remote_view)
                 }
+
+                override fun onRemoveStream(p0: MediaStream?) {
+                    super.onRemoveStream(p0)
+                    Log.d("blablabla", "onRemoveStream")
+
+                }
+
+                override fun onDataChannel(p0: DataChannel?) {
+                    Log.d("blablabla", "onDataChannel: $p0")
+                }
+
+                override fun onIceConnectionReceivingChange(p0: Boolean) {
+                    Log.d("blablabla", "onIceConnectionReceivingChange: $p0")
+                }
+
+                override fun onIceConnectionChange(p0: PeerConnection.IceConnectionState?) {
+                    Log.d("blablabla", "onIceConnectionChange: $p0")
+                    runOnUiThread {
+                        when (p0) {
+                            PeerConnection.IceConnectionState.DISCONNECTED,
+                            PeerConnection.IceConnectionState.CLOSED,
+                            PeerConnection.IceConnectionState.FAILED -> {
+                                remote_view_loading.visibility = View.VISIBLE
+                                callFAB.visibility = View.VISIBLE
+                                hangUpFAB.visibility = View.GONE
+                            }
+                            PeerConnection.IceConnectionState.CONNECTED -> {
+                                remote_view_loading.visibility = View.GONE
+                                callFAB.visibility = View.GONE
+                                hangUpFAB.visibility = View.VISIBLE
+                            }
+                            else -> {
+                            }
+                        }
+                    }
+                }
+
+                override fun onIceGatheringChange(p0: PeerConnection.IceGatheringState?) {
+                    Log.d("blablabla", "onIceGatheringChange: $p0")
+                }
+
+                override fun onSignalingChange(p0: PeerConnection.SignalingState?) {
+                    Log.d("blablabla", "onSignalingChange: $p0")
+                }
+
+                override fun onIceCandidatesRemoved(p0: Array<out IceCandidate>?) {
+                    Log.d("blablabla", "onIceCandidatesRemoved: $p0")
+                }
+
+                override fun onRenegotiationNeeded() {
+                    Log.d("blablabla", "onRenegotiationNeeded")
+                }
+
+                override fun onAddTrack(p0: RtpReceiver?, p1: Array<out MediaStream>?) {}
+
             }
         )
 
@@ -240,12 +269,45 @@ class SecondVerActivity : AppCompatActivity() {
         Log.d("blablabla", "Camera Permission Denied")
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        local_view.release()
-        remote_view.release()
-        rtcClient.disposeAll()
-        viewModel.disconnect()
+    private fun negotiationMessageListener(message: NegotiationEvent) {
+        runOnUiThread {
+            when (message) {
+                is NegotiationEvent.Answer -> {
+                    Log.d("blablabla", "AnswerReceived in UI")
+                    rtcClient.onRemoteSessionReceived(
+                        SessionDescription(
+                            SessionDescription.Type.ANSWER,
+                            message.sdp
+                        )
+                    )
+                    remote_view_loading.visibility = View.GONE
+                }
+                is NegotiationEvent.Offer -> {
+                    Log.d("blablabla", "OfferReceived in UI")
+                    lastUser = message.from
+                    rtcClient.onRemoteSessionReceived(
+                        SessionDescription(
+                            SessionDescription.Type.OFFER,
+                            message.sdp
+                        )
+                    )
+                    rtcClient.answer(sdpObserver)
+                    remote_view_loading.visibility = View.GONE
+                }
+                is NegotiationEvent.IceCandidate -> {
+                    rtcClient.addIceCandidate(
+                        IceCandidate(
+                            message.sdpMid,
+                            message.sdpMLineIndex,
+                            message.sdp
+                        )
+                    )
+                }
+                is NegotiationEvent.Discovery -> {
+                    usersAdapter?.setList(message.userIds)
+                }
+            }
+        }
     }
 
     companion object {
