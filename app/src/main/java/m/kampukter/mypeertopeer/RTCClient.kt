@@ -19,13 +19,14 @@ class RTCClient(
             .createIceServer()
     )
 
-    private var peerConnectionFactory : PeerConnectionFactory
+    private var peerConnectionFactory: PeerConnectionFactory
     private var videoCapturer: VideoCapturer
     private var localVideoSource: VideoSource
     private lateinit var audioSource: AudioSource
-    private var peerConnection : PeerConnection
+    private var peerConnection: PeerConnection?
 
     private val rootEglBase: EglBase = EglBase.create()
+
     private val constraints = MediaConstraints().apply {
         mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveVideo", "true"))
         mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveAudio", "true"))
@@ -35,22 +36,47 @@ class RTCClient(
         initPeerConnectionFactory(context)
         peerConnectionFactory = buildPeerConnectionFactory()
         videoCapturer = getVideoCapturer()
-        localVideoSource = peerConnectionFactory.createVideoSource(videoCapturer)
+        //localVideoSource = peerConnectionFactory.createVideoSource(videoCapturer)
+        localVideoSource = peerConnectionFactory.createVideoSource(false)
         peerConnection = buildPeerConnection(observer)
     }
 
     private fun initPeerConnectionFactory(context: Application) {
 
-        PeerConnectionFactory.initializeAndroidGlobals(context, true)
+        //PeerConnectionFactory.initializeAndroidGlobals(context, true)
+        val options = PeerConnectionFactory.InitializationOptions.builder(context)
+            .setEnableInternalTracer(true)
+            .setFieldTrials("WebRTC-H264HighProfile/Enabled/")
+            .createInitializationOptions()
+        PeerConnectionFactory.initialize(options)
     }
 
     private fun buildPeerConnectionFactory(): PeerConnectionFactory =
-        PeerConnectionFactory(PeerConnectionFactory.Options())
+        PeerConnectionFactory
+            .builder()
+            .setVideoDecoderFactory(DefaultVideoDecoderFactory(rootEglBase.eglBaseContext))
+            .setVideoEncoderFactory(
+                DefaultVideoEncoderFactory(
+                    rootEglBase.eglBaseContext,
+                    true,
+                    true
+                )
+            )
+            .setOptions(PeerConnectionFactory.Options().apply {
+                disableEncryption = true
+                disableNetworkMonitor = true
+            })
+            .createPeerConnectionFactory()
+    //PeerConnectionFactory(PeerConnectionFactory.Options())
 
     private fun buildPeerConnection(observer: PeerConnection.Observer) =
-        peerConnectionFactory.createPeerConnection(iceServer, constraints, observer)
+        peerConnectionFactory.createPeerConnection(
+            iceServer,
+            observer
+        )
+    //peerConnectionFactory.createPeerConnection(iceServer, constraints, observer)
 
-    private fun getVideoCapturer() : VideoCapturer {
+    private fun getVideoCapturer(): VideoCapturer {
         val camera1 = Camera1Enumerator(false)
         val selectedDevice =
             camera1.deviceNames.firstOrNull(camera1::isFrontFacing)
@@ -66,21 +92,30 @@ class RTCClient(
     }
 
     fun startLocalVideoCapture(localVideoOutput: SurfaceViewRenderer) {
+
+        val surfaceTextureHelper =
+            SurfaceTextureHelper.create(Thread.currentThread().name, rootEglBase.eglBaseContext)
+        videoCapturer.initialize(
+            surfaceTextureHelper,
+            localVideoOutput.context,
+            localVideoSource.capturerObserver
+        )
+
         videoCapturer.startCapture(320, 240, 30)
 
         val localVideoTrack =
             peerConnectionFactory.createVideoTrack(LOCAL_TRACK_ID, localVideoSource)
+        localVideoTrack.addSink(localVideoOutput)
+        val localStream = peerConnectionFactory.createLocalMediaStream(LOCAL_STREAM_ID)
 
         audioSource = peerConnectionFactory.createAudioSource(constraints)
-        val localAudioTrack = peerConnectionFactory.createAudioTrack(LOCAL_AUDIO_TRACK_ID,audioSource)
+        val localAudioTrack =
+            peerConnectionFactory.createAudioTrack(LOCAL_AUDIO_TRACK_ID, audioSource)
 
-        localVideoTrack.addRenderer(VideoRenderer(localVideoOutput))
-        localVideoTrack.addSink(localVideoOutput)
-
-        val localStream = peerConnectionFactory.createLocalMediaStream(LOCAL_STREAM_ID)
         localStream.addTrack(localVideoTrack)
         localStream.addTrack(localAudioTrack)
-        peerConnection.addStream(localStream)
+
+        peerConnection?.addStream(localStream)
     }
 
     private fun PeerConnection.call(sdpObserver: SdpObserver) {
@@ -126,39 +161,35 @@ class RTCClient(
         }, constraints)
     }
 
-    fun call(sdpObserver: SdpObserver) = peerConnection.call(sdpObserver)
+    fun call(sdpObserver: SdpObserver) = peerConnection?.call(sdpObserver)
 
-    fun answer(sdpObserver: SdpObserver) = peerConnection.answer(sdpObserver)
+    fun answer(sdpObserver: SdpObserver) = peerConnection?.answer(sdpObserver)
 
     fun onRemoteSessionReceived(sessionDescription: SessionDescription) {
-        peerConnection.setRemoteDescription(object : SdpObserver {
-            override fun onSetFailure(p0: String?) {
-            }
+        peerConnection?.setRemoteDescription(object : SdpObserver {
+            override fun onSetFailure(p0: String?) {}
 
-            override fun onSetSuccess() {
-            }
+            override fun onSetSuccess() {}
 
-            override fun onCreateSuccess(p0: SessionDescription?) {
-            }
+            override fun onCreateSuccess(p0: SessionDescription?) {}
 
-            override fun onCreateFailure(p0: String?) {
-            }
+            override fun onCreateFailure(p0: String?) {}
         }, sessionDescription)
     }
 
     fun addIceCandidate(iceCandidate: IceCandidate?) {
-        peerConnection.addIceCandidate(iceCandidate)
+        peerConnection?.addIceCandidate(iceCandidate)
     }
-    fun peerConnectionClose() = peerConnection.close()
-    fun disposeAll(){
 
+    //fun peerConnectionClose() = peerConnection?.close()
+    fun disposeAll() {
 
 
         videoCapturer.stopCapture()
         videoCapturer.dispose()
         localVideoSource.dispose()
         audioSource.dispose()
-        peerConnection.dispose()
+        peerConnection?.dispose()
         peerConnectionFactory.dispose()
         rootEglBase.release()
     }

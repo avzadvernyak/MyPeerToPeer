@@ -10,11 +10,16 @@ import java.net.URL
 interface NegotiationAPI {
 
     var onNegotiationEvent: ((NegotiationEvent) -> Unit)?
+    var onNegotiationEventMain: ((NegotiationEvent) -> Unit)?
 
     fun connect()
 
     fun disconnect()
 
     fun send( dataObject: NegotiationMessage )
+
+    fun sendOffer(to: String, sdp: String)
+    fun sendAnswer(to: String, sdp: String)
+    fun sendCandidate(to: String, sdp: String, sdpMid: String, sdpMLineIndex: Int)
 
 }

@@ -12,17 +12,16 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import kotlinx.android.synthetic.main.second_version_activity.*
 import m.kampukter.mypeertopeer.R
 import m.kampukter.mypeertopeer.RTCClient
 import m.kampukter.mypeertopeer.data.NegotiationEvent
 import m.kampukter.mypeertopeer.data.NegotiationMessage
+import m.kampukter.mypeertopeer.data.ParcelObjectOffer
 import m.kampukter.mypeertopeer.data.dto.NegotiationAPI
+import m.kampukter.mypeertopeer.ui.MainActivity.Companion.EXTRA_MESSAGE_CANDIDATE
 import org.koin.android.ext.android.inject
 import org.webrtc.*
-import java.net.URL
 
 val myName: String
     get() = "user_${Build.BOOTLOADER}"
@@ -33,8 +32,8 @@ class SecondVerActivity : AppCompatActivity() {
 
     private lateinit var rtcClient: RTCClient
 
-    private var usersAdapter: UsersAdapter? = null
     private var lastUser: String? = null
+    private var sdpOffer: String? = null
 
     private var audioManager: AudioManager? = null
     private var savedAudioMode: Int? = null
@@ -48,7 +47,7 @@ class SecondVerActivity : AppCompatActivity() {
 
         override fun onCreateSuccess(p0: SessionDescription?) {
             super.onCreateSuccess(p0)
-
+            //Log.d("blablabla", "${p0?.type}")
             lastUser?.let { user ->
                 p0?.let {
                     service.send(
@@ -68,10 +67,17 @@ class SecondVerActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.second_version_activity)
 
-        userTextView.text = myName
-        hangUpFAB.visibility = View.GONE
+        val bundle = intent.getBundleExtra("Bundle")
+        val parcelObjectOffer = bundle.getParcelable<ParcelObjectOffer>(EXTRA_MESSAGE_CANDIDATE)
+        parcelObjectOffer?.let {
+            lastUser = it.from
+            sdpOffer = it.sdpOffer
+        }
+        //if(lastUser == null) finish()
+
         checkCameraPermission()
 
+        //service.connect()
         service.onNegotiationEvent = this::negotiationMessageListener
 
         //
@@ -82,29 +88,7 @@ class SecondVerActivity : AppCompatActivity() {
         audioManager?.isMicrophoneMute = false
         //
 
-        usersAdapter = UsersAdapter { item ->
-            //Log.d("blablabla", "Выбран  -> $item")
-            callFAB.isExpanded = false
-            mainConstraintLayout.visibility = View.VISIBLE
-            lastUser = item
-            rtcClient.call(sdpObserver)
-
-        }
-
-        with(usersRecyclerView) {
-            layoutManager = LinearLayoutManager(context, RecyclerView.VERTICAL, false)
-            adapter = usersAdapter
-        }
-
-        service.connect()
-        sheet.setOnClickListener {
-            callFAB.isExpanded = false
-            mainConstraintLayout.visibility = View.VISIBLE
-        }
-        callFAB.setOnClickListener {
-            callFAB.isExpanded = true
-            mainConstraintLayout.visibility = View.GONE
-        }
+        hangUpFAB.setOnClickListener { finish() }
     }
 
     override fun onDestroy() {
@@ -112,7 +96,7 @@ class SecondVerActivity : AppCompatActivity() {
         local_view.release()
         remote_view.release()
         rtcClient.disposeAll()
-        service.disconnect()
+        //service.disconnect()
         savedAudioMode?.let { audioManager?.mode = it }
         savedMicrophoneState?.let { audioManager?.isMicrophoneMute = it }
     }
@@ -175,22 +159,18 @@ class SecondVerActivity : AppCompatActivity() {
 
                 override fun onIceConnectionChange(p0: PeerConnection.IceConnectionState?) {
                     Log.d("blablabla", "onIceConnectionChange: $p0")
-                    runOnUiThread {
-                        when (p0) {
-                            PeerConnection.IceConnectionState.DISCONNECTED,
-                            PeerConnection.IceConnectionState.CLOSED,
-                            PeerConnection.IceConnectionState.FAILED -> {
-                                remote_view_loading.visibility = View.VISIBLE
-                                callFAB.visibility = View.VISIBLE
-                                hangUpFAB.visibility = View.GONE
-                            }
-                            PeerConnection.IceConnectionState.CONNECTED -> {
+                    when (p0) {
+                        PeerConnection.IceConnectionState.DISCONNECTED,
+                        PeerConnection.IceConnectionState.CLOSED,
+                        PeerConnection.IceConnectionState.FAILED -> {
+                            finish()
+                        }
+                        PeerConnection.IceConnectionState.CONNECTED -> {
+                            runOnUiThread {
                                 remote_view_loading.visibility = View.GONE
-                                callFAB.visibility = View.GONE
-                                hangUpFAB.visibility = View.VISIBLE
                             }
-                            else -> {
-                            }
+                        }
+                        else -> {
                         }
                     }
                 }
@@ -219,6 +199,17 @@ class SecondVerActivity : AppCompatActivity() {
         rtcClient.initSurfaceView(remote_view)
         rtcClient.initSurfaceView(local_view)
         rtcClient.startLocalVideoCapture(local_view)
+        if (lastUser != null) {
+            if (sdpOffer != null) {
+                rtcClient.onRemoteSessionReceived(
+                    SessionDescription(
+                        SessionDescription.Type.OFFER,
+                        sdpOffer
+                    )
+                )
+            } else rtcClient.call(sdpObserver)
+        }
+
     }
 
     private fun requestCameraPermission(dialogShown: Boolean = false) {
@@ -304,7 +295,7 @@ class SecondVerActivity : AppCompatActivity() {
                     )
                 }
                 is NegotiationEvent.Discovery -> {
-                    usersAdapter?.setList(message.userIds)
+                    //usersAdapter?.setList(message.userIds)
                 }
             }
         }
