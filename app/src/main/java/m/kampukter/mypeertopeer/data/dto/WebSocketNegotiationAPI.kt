@@ -14,7 +14,6 @@ class WebSocketNegotiationAPI : NegotiationAPI {
     private var webSocket: WebSocket? = null
 
     override var onNegotiationEvent: ((NegotiationEvent) -> Unit)? = null
-    override var onNegotiationEventMain: ((NegotiationEvent) -> Unit)? = null
 
     private val okHttpClient = OkHttpClient.Builder()
         .readTimeout(10, TimeUnit.SECONDS)
@@ -47,7 +46,7 @@ class WebSocketNegotiationAPI : NegotiationAPI {
                     /*onNegotiationEvent?.invoke(
                         NegotiationEvent.Discovery(it)
                     )*/
-                    onNegotiationEventMain?.invoke(
+                    onNegotiationEvent?.invoke(
                         NegotiationEvent.Discovery(it)
                     )
                 }
@@ -56,7 +55,6 @@ class WebSocketNegotiationAPI : NegotiationAPI {
                     val sdp = message.sdp
                     if (from == null || sdp == null) return
                     onNegotiationEvent?.invoke(NegotiationEvent.Offer(from, "", sdp))
-                    onNegotiationEventMain?.invoke(NegotiationEvent.Offer(from, "", sdp))
                 }
                 "answer" -> message.sdp?.let {
                     onNegotiationEvent?.invoke(

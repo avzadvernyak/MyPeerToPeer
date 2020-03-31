@@ -10,7 +10,6 @@ import java.net.URL
 interface NegotiationAPI {
 
     var onNegotiationEvent: ((NegotiationEvent) -> Unit)?
-    var onNegotiationEventMain: ((NegotiationEvent) -> Unit)?
 
     fun connect()
 

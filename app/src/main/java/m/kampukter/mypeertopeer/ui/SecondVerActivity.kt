@@ -4,81 +4,36 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.media.AudioManager
-import android.os.Build
 import android.os.Bundle
 import android.util.Log
-import android.view.View
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import kotlinx.android.synthetic.main.second_version_activity.*
+import m.kampukter.mypeertopeer.MyViewModel
 import m.kampukter.mypeertopeer.R
-import m.kampukter.mypeertopeer.RTCClient
-import m.kampukter.mypeertopeer.data.NegotiationEvent
-import m.kampukter.mypeertopeer.data.NegotiationMessage
-import m.kampukter.mypeertopeer.data.ParcelObjectOffer
-import m.kampukter.mypeertopeer.data.dto.NegotiationAPI
 import m.kampukter.mypeertopeer.ui.MainActivity.Companion.EXTRA_MESSAGE_CANDIDATE
-import org.koin.android.ext.android.inject
-import org.webrtc.*
-
-val myName: String
-    get() = "user_${Build.BOOTLOADER}"
+import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class SecondVerActivity : AppCompatActivity() {
 
-    private val service: NegotiationAPI by inject()
-
-    private lateinit var rtcClient: RTCClient
-
+    private val viewModel by viewModel<MyViewModel>()
     private var lastUser: String? = null
-    private var sdpOffer: String? = null
 
     private var audioManager: AudioManager? = null
     private var savedAudioMode: Int? = null
     private var savedMicrophoneState: Boolean? = null
 
-    private val sdpObserver = object : AppSdpObserver() {
-        override fun onSetSuccess() {
-            super.onSetSuccess()
-            Log.d("blablabla", "onSetSuccess")
-        }
-
-        override fun onCreateSuccess(p0: SessionDescription?) {
-            super.onCreateSuccess(p0)
-            //Log.d("blablabla", "${p0?.type}")
-            lastUser?.let { user ->
-                p0?.let {
-                    service.send(
-                        NegotiationMessage(
-                            to = user,
-                            from = myName,
-                            type = it.type.canonicalForm(),
-                            sdp = it.description
-                        )
-                    )
-                }
-            }
-        }
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.second_version_activity)
 
-        val bundle = intent.getBundleExtra("Bundle")
-        val parcelObjectOffer = bundle.getParcelable<ParcelObjectOffer>(EXTRA_MESSAGE_CANDIDATE)
-        parcelObjectOffer?.let {
-            lastUser = it.from
-            sdpOffer = it.sdpOffer
-        }
-        //if(lastUser == null) finish()
+        lastUser = intent.getStringExtra(EXTRA_MESSAGE_CANDIDATE)
 
         checkCameraPermission()
 
-        //service.connect()
-        service.onNegotiationEvent = this::negotiationMessageListener
+        //service.onNegotiationEvent = this::negotiationMessageListener
 
         //
         audioManager = this.getSystemService(Context.AUDIO_SERVICE) as AudioManager?
@@ -95,8 +50,7 @@ class SecondVerActivity : AppCompatActivity() {
         super.onDestroy()
         local_view.release()
         remote_view.release()
-        rtcClient.disposeAll()
-        //service.disconnect()
+        viewModel.dispose()
         savedAudioMode?.let { audioManager?.mode = it }
         savedMicrophoneState?.let { audioManager?.isMicrophoneMute = it }
     }
@@ -114,7 +68,8 @@ class SecondVerActivity : AppCompatActivity() {
     }
 
     private fun onCameraPermissionGranted() {
-        rtcClient = RTCClient(
+        lastUser?.let { viewModel.startCall(it, local_view, remote_view) }
+        /*rtcClient = RTCClient(
             application,
             object : PeerConnectionObserver() {
                 override fun onIceCandidate(p0: IceCandidate?) {
@@ -158,7 +113,6 @@ class SecondVerActivity : AppCompatActivity() {
                 }
 
                 override fun onIceConnectionChange(p0: PeerConnection.IceConnectionState?) {
-                    Log.d("blablabla", "onIceConnectionChange: $p0")
                     when (p0) {
                         PeerConnection.IceConnectionState.DISCONNECTED,
                         PeerConnection.IceConnectionState.CLOSED,
@@ -199,17 +153,11 @@ class SecondVerActivity : AppCompatActivity() {
         rtcClient.initSurfaceView(remote_view)
         rtcClient.initSurfaceView(local_view)
         rtcClient.startLocalVideoCapture(local_view)
-        if (lastUser != null) {
-            if (sdpOffer != null) {
-                rtcClient.onRemoteSessionReceived(
-                    SessionDescription(
-                        SessionDescription.Type.OFFER,
-                        sdpOffer
-                    )
-                )
-            } else rtcClient.call(sdpObserver)
+        if (lastUser != "") {
+            rtcClient.call(sdpObserver)
         }
 
+         */
     }
 
     private fun requestCameraPermission(dialogShown: Boolean = false) {
@@ -260,7 +208,8 @@ class SecondVerActivity : AppCompatActivity() {
         Log.d("blablabla", "Camera Permission Denied")
     }
 
-    private fun negotiationMessageListener(message: NegotiationEvent) {
+
+    /*private fun negotiationMessageListener(message: NegotiationEvent) {
         runOnUiThread {
             when (message) {
                 is NegotiationEvent.Answer -> {
@@ -299,7 +248,7 @@ class SecondVerActivity : AppCompatActivity() {
                 }
             }
         }
-    }
+    }*/
 
     companion object {
         private const val CAMERA_PERMISSION_REQUEST_CODE = 1

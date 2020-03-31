@@ -1,17 +1,17 @@
 package m.kampukter.mypeertopeer.ui
 
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.Observer
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import kotlinx.android.synthetic.main.main_activity.*
+import m.kampukter.mypeertopeer.MyViewModel
 import m.kampukter.mypeertopeer.R
-import m.kampukter.mypeertopeer.data.NegotiationEvent
-import m.kampukter.mypeertopeer.data.ParcelObjectOffer
-import m.kampukter.mypeertopeer.data.dto.NegotiationAPI
-import org.koin.android.ext.android.inject
+import org.koin.androidx.viewmodel.ext.android.viewModel
 
 /*
 1 важное - наследник PeerConnection.Observer
@@ -20,22 +20,34 @@ import org.koin.android.ext.android.inject
 и последнее важное - диспозить это все ибо оно нативное и коллектор его не выгребет
  */
 
+val myName: String
+    get() = "user_${Build.BOOTLOADER}"
+
 class MainActivity : AppCompatActivity() {
 
-    private val service: NegotiationAPI by inject()
+    private val viewModel by viewModel<MyViewModel>()
     private var usersAdapter: UsersAdapter? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.main_activity)
 
-        Log.d("blablabla", "onCreate MainActivity ${Thread.currentThread().name}")
-        service.connect()
-
+        viewModel.connect()
+        viewModel.isOffer.observe(
+            this,
+            Observer {
+                if (it) startActivity(
+                    Intent(this, AnswerActivity::class.java)
+                )
+            })
+        viewModel.userIdsLiveData.observe(this, Observer { usersAdapter?.setList(it) })
         usersAdapter = UsersAdapter { item ->
-            val bundle = Bundle()
-            bundle.putParcelable(EXTRA_MESSAGE_CANDIDATE, ParcelObjectOffer(item, null))
-            startActivity(Intent(this, SecondVerActivity::class.java).putExtra("Bundle", bundle))
+            startActivity(
+                Intent(this, SecondVerActivity::class.java).putExtra(
+                    EXTRA_MESSAGE_CANDIDATE,
+                    item
+                )
+            )
         }
 
         with(usersRecyclerView) {
@@ -43,46 +55,19 @@ class MainActivity : AppCompatActivity() {
             adapter = usersAdapter
         }
         callFAB.setOnClickListener {
-            val bundle = Bundle()
-            bundle.putParcelable(EXTRA_MESSAGE_CANDIDATE, ParcelObjectOffer(null, null))
-            startActivity(Intent(this, SecondVerActivity::class.java).putExtra("Bundle", bundle))
+            startActivity(
+                Intent(this, SecondVerActivity::class.java).putExtra(
+                    EXTRA_MESSAGE_CANDIDATE,
+                    ""
+                )
+            )
         }
     }
 
     override fun onDestroy() {
         super.onDestroy()
 
-        service.disconnect()
-    }
-
-    override fun onResume() {
-        super.onResume()
-
-        service.onNegotiationEventMain = this::negotiationMessageListener
-    }
-
-
-    private fun negotiationMessageListener(message: NegotiationEvent) {
-        runOnUiThread {
-            when (message) {
-                is NegotiationEvent.Discovery -> {
-                    usersAdapter?.setList(message.userIds)
-                }
-                /*is NegotiationEvent.Offer -> {
-                    val bundle = Bundle()
-                    bundle.putParcelable(
-                        EXTRA_MESSAGE_CANDIDATE,
-                        ParcelObjectOffer(message.from, message.sdp)
-                    )
-                    startActivity(
-                        Intent(this, SecondVerActivity::class.java).putExtra(
-                            "Bundle",
-                            bundle
-                        )
-                    )
-                }*/
-            }
-        }
+        viewModel.disconnect()
     }
 
     companion object {

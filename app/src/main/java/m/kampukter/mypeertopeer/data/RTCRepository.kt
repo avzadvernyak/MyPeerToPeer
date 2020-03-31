@@ -1,20 +1,28 @@
 package m.kampukter.mypeertopeer.data
 
-import android.content.Context
+import android.app.Application
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.Observer
 import m.kampukter.mypeertopeer.CallSession
 import m.kampukter.mypeertopeer.data.dto.NegotiationAPI
+import org.webrtc.SurfaceViewRenderer
 
-class DefaultMainRepository(
-    private val context: Context,
+class RTCRepository(
+    private val context: Application,
     private val negotiationAPI: NegotiationAPI
-) : MainRepository {
+) {
 
     private val _userIdsLiveData = MutableLiveData<List<String>>()
 
-    override val userIdsLiveData: LiveData<List<String>>
+    val userIdsLiveData: LiveData<List<String>>
         get() = _userIdsLiveData
+
+    private val _isOffer = MutableLiveData<Boolean>()
+
+    val isOffer: LiveData<Boolean>
+        get() = _isOffer
 
     private var callSession: CallSession? = null
 
@@ -40,7 +48,10 @@ class DefaultMainRepository(
                         context,
                         event.from,
                         onOutgoingNegotiationEvent
-                    ).apply { handleOffer(event.sdp) }
+                    ).apply {
+                        _isOffer.postValue(true)
+                        handleOffer(event.sdp)
+                    }
                 }
                 is NegotiationEvent.Answer -> {
                     callSession?.handleAnswer(event.sdp)
@@ -52,17 +63,49 @@ class DefaultMainRepository(
         }
     }
 
-    override fun connect() {
+    fun connect() {
         negotiationAPI.connect()
     }
 
-    override fun disconnect() {
+    fun disconnect() {
         negotiationAPI.disconnect()
     }
 
-    override fun startCall(userId: String) {
+    fun startCall(userId: String, localView: SurfaceViewRenderer, remoteView: SurfaceViewRenderer) {
         if (callSession == null) callSession =
-            CallSession(context, userId, onOutgoingNegotiationEvent).apply { start() }
+            CallSession(context, userId, onOutgoingNegotiationEvent).apply {
+                initSurfaceView(localView)
+                initSurfaceView(remoteView)
+                start(localView)
+            }
+    }
+
+    data class MyViewRenderer(
+        val localSVR: SurfaceViewRenderer,
+        val remoteSVR: SurfaceViewRenderer
+    )
+
+    private var myViewRenderer: MyViewRenderer? = null
+        set(value) {
+            Log.d("blablabla", "set view ")
+            if (callSession != null) {
+                value?.let {
+                    callSession?.initSurfaceView(it.localSVR)
+                    callSession?.initSurfaceView(it.remoteSVR)
+                    callSession?.startLocalVideoCapture(it.localSVR)
+
+                }
+            }
+            field = value
+        }
+
+    fun setSurfaceView(localView: SurfaceViewRenderer, remoteView: SurfaceViewRenderer) {
+        myViewRenderer = MyViewRenderer(localView, remoteView)
+    }
+
+    fun disposeRTC() {
+        callSession?.disposeAll()
+        callSession = null
     }
 }
 

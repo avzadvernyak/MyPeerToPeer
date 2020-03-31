@@ -1,8 +1,7 @@
 package m.kampukter.mypeertopeer
 
 import android.app.Application
-import m.kampukter.mypeertopeer.data.DefaultMainRepository
-import m.kampukter.mypeertopeer.data.MainRepository
+import m.kampukter.mypeertopeer.data.RTCRepository
 import m.kampukter.mypeertopeer.data.dto.WebSocketNegotiationAPI
 import m.kampukter.mypeertopeer.data.dto.NegotiationAPI
 import org.koin.android.ext.koin.androidContext
@@ -14,8 +13,8 @@ import org.koin.dsl.module
 class MainApplication : Application(){
     private val module = module {
         single<NegotiationAPI> { WebSocketNegotiationAPI() }
-        single<MainRepository> { DefaultMainRepository(androidContext(),get()) }
-        viewModel { MainViewModel(get()) }
+        single { RTCRepository(this@MainApplication,get()) }
+        viewModel { MyViewModel(get()) }
     }
 
     override fun onCreate() {

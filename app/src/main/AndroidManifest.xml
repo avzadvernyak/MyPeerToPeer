@@ -35,5 +35,16 @@
 
             </meta-data>
         </activity>
+        <activity android:name=".ui.AnswerActivity"
+            android:parentActivityName=".ui.MainActivity"
+            android:label="Answer"
+            android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".ui.MainActivity">
+
+            </meta-data>
+        </activity>
     </application>
 </manifest>

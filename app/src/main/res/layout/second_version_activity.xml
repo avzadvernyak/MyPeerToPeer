@@ -40,5 +40,6 @@
         android:layout_margin="20dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:srcCompat="@drawable/ic_call_end" />
+        app:srcCompat="@drawable/ic_call_end"
+        android:backgroundTint="@color/colorFailed"/>
 </androidx.constraintlayout.widget.ConstraintLayout>
