@@ -6,13 +6,17 @@ import android.content.pm.PackageManager
 import android.media.AudioManager
 import android.os.Bundle
 import android.util.Log
+import android.view.View
+import android.view.WindowManager
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Observer
 import kotlinx.android.synthetic.main.second_version_activity.*
 import m.kampukter.mypeertopeer.MyViewModel
 import m.kampukter.mypeertopeer.R
+import m.kampukter.mypeertopeer.data.NegotiationEvent
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class AnswerActivity : AppCompatActivity() {
@@ -28,11 +32,11 @@ class AnswerActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.second_version_activity)
 
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
         lastUser = intent.getStringExtra(MainActivity.EXTRA_MESSAGE_CANDIDATE)
-
+        title = getString(R.string.conversation_title, lastUser)
         checkCameraPermission()
-
-        //service.onNegotiationEvent = this::negotiationMessageListener
 
         //
         audioManager = this.getSystemService(Context.AUDIO_SERVICE) as AudioManager?
@@ -42,7 +46,20 @@ class AnswerActivity : AppCompatActivity() {
         audioManager?.isMicrophoneMute = false
         //
 
-        hangUpFAB.setOnClickListener { finish() }
+        hangUpFAB.setOnClickListener {
+            viewModel.dispose()
+            finish()
+        }
+
+        viewModel.negotiationEvent.observe(this, Observer {
+            when (it) {
+                is NegotiationEvent.HangUp -> {
+                    viewModel.dispose()
+                    finish()
+                }
+                is NegotiationEvent.Connected -> remote_view_loading.visibility = View.GONE
+            }
+        })
     }
 
     override fun onDestroy() {
@@ -67,8 +84,7 @@ class AnswerActivity : AppCompatActivity() {
     }
 
     private fun onCameraPermissionGranted() {
-        Log.d("blablabla", "setSurfaceView")
-        viewModel.setSurfaceView(local_view, remote_view)
+        viewModel.answerCall(local_view, remote_view)
     }
 
     private fun requestCameraPermission(dialogShown: Boolean = false) {

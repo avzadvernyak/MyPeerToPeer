@@ -1,9 +1,9 @@
 package m.kampukter.mypeertopeer.ui
 
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
-import android.util.Log
+import android.view.View
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Observer
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -11,6 +11,8 @@ import androidx.recyclerview.widget.RecyclerView
 import kotlinx.android.synthetic.main.main_activity.*
 import m.kampukter.mypeertopeer.MyViewModel
 import m.kampukter.mypeertopeer.R
+import m.kampukter.mypeertopeer.data.NegotiationEvent
+import m.kampukter.mypeertopeer.myName
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
 /*
@@ -19,9 +21,6 @@ import org.koin.androidx.viewmodel.ext.android.viewModel
 3 важное - конфигурация стримов, тут она в setupMediaDevices
 и последнее важное - диспозить это все ибо оно нативное и коллектор его не выгребет
  */
-
-val myName: String
-    get() = "user_${Build.BOOTLOADER}"
 
 class MainActivity : AppCompatActivity() {
 
@@ -32,13 +31,28 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.main_activity)
 
-        viewModel.connect()
-        viewModel.isOffer.observe(
+        title = getString(R.string.main_toolbar_title, myName)
+        
+        if (!myName.isNullOrEmpty()) viewModel.connect()
+        viewModel.negotiationEvent.observe(
             this,
             Observer {
-                if (it) startActivity(
-                    Intent(this, AnswerActivity::class.java)
-                )
+                when (it) {
+                    is NegotiationEvent.IncomingCall -> {
+                        AlertDialog.Builder(this).setTitle(getString(R.string.incoming_call))
+                            .setMessage(getString(R.string.message_title, it.from))
+                            .setPositiveButton(getString(R.string.accept)) { _, _ ->
+                                startActivity(
+                                    Intent(this, AnswerActivity::class.java).putExtra(
+                                        EXTRA_MESSAGE_CANDIDATE,
+                                        it.from
+                                    )
+                                )
+                            }
+                            .setNegativeButton(getString(R.string.reject)) { _, _ ->  }
+                            .create().show()
+                    }
+                }
             })
         viewModel.userIdsLiveData.observe(this, Observer { usersAdapter?.setList(it) })
         usersAdapter = UsersAdapter { item ->
@@ -54,6 +68,7 @@ class MainActivity : AppCompatActivity() {
             layoutManager = LinearLayoutManager(context, RecyclerView.VERTICAL, false)
             adapter = usersAdapter
         }
+        callFAB.visibility = View.INVISIBLE
         callFAB.setOnClickListener {
             startActivity(
                 Intent(this, SecondVerActivity::class.java).putExtra(

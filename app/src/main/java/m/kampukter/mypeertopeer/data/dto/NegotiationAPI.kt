@@ -15,7 +15,7 @@ interface NegotiationAPI {
 
     fun disconnect()
 
-    fun send( dataObject: NegotiationMessage )
+    //fun send( dataObject: NegotiationMessage )
 
     fun sendOffer(to: String, sdp: String)
     fun sendAnswer(to: String, sdp: String)

@@ -6,13 +6,17 @@ import android.content.pm.PackageManager
 import android.media.AudioManager
 import android.os.Bundle
 import android.util.Log
+import android.view.View
+import android.view.WindowManager
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Observer
 import kotlinx.android.synthetic.main.second_version_activity.*
 import m.kampukter.mypeertopeer.MyViewModel
 import m.kampukter.mypeertopeer.R
+import m.kampukter.mypeertopeer.data.NegotiationEvent
 import m.kampukter.mypeertopeer.ui.MainActivity.Companion.EXTRA_MESSAGE_CANDIDATE
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
@@ -29,11 +33,11 @@ class SecondVerActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.second_version_activity)
 
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
         lastUser = intent.getStringExtra(EXTRA_MESSAGE_CANDIDATE)
-
+        title = getString(R.string.conversation_title, lastUser)
         checkCameraPermission()
-
-        //service.onNegotiationEvent = this::negotiationMessageListener
 
         //
         audioManager = this.getSystemService(Context.AUDIO_SERVICE) as AudioManager?
@@ -43,7 +47,20 @@ class SecondVerActivity : AppCompatActivity() {
         audioManager?.isMicrophoneMute = false
         //
 
-        hangUpFAB.setOnClickListener { finish() }
+        hangUpFAB.setOnClickListener {
+            viewModel.dispose()
+            finish()
+        }
+        viewModel.negotiationEvent.observe(this, Observer {
+            when (it) {
+                is NegotiationEvent.HangUp -> {
+                    viewModel.dispose()
+                    finish()
+                }
+                is NegotiationEvent.Connected -> remote_view_loading.visibility = View.GONE
+            }
+        })
+
     }
 
     override fun onDestroy() {
@@ -69,95 +86,7 @@ class SecondVerActivity : AppCompatActivity() {
 
     private fun onCameraPermissionGranted() {
         lastUser?.let { viewModel.startCall(it, local_view, remote_view) }
-        /*rtcClient = RTCClient(
-            application,
-            object : PeerConnectionObserver() {
-                override fun onIceCandidate(p0: IceCandidate?) {
-                    super.onIceCandidate(p0)
-                    lastUser?.let { user ->
-                        p0?.let {
-                            service.send(
-                                NegotiationMessage(
-                                    type = "serverUrl",
-                                    to = user,
-                                    from = myName,
-                                    sdp = it.sdp,
-                                    sdpMid = it.sdpMid,
-                                    sdpMLineIndex = it.sdpMLineIndex
-                                )
-                            )
-                        }
-                    }
-                    rtcClient.addIceCandidate(p0)
-                }
 
-                override fun onAddStream(p0: MediaStream?) {
-                    super.onAddStream(p0)
-                    Log.d("blablabla", "onAddStream -> ${p0?.videoTracks?.get(0)}")
-
-                    p0?.videoTracks?.get(0)?.addSink(remote_view)
-                }
-
-                override fun onRemoveStream(p0: MediaStream?) {
-                    super.onRemoveStream(p0)
-                    Log.d("blablabla", "onRemoveStream")
-
-                }
-
-                override fun onDataChannel(p0: DataChannel?) {
-                    Log.d("blablabla", "onDataChannel: $p0")
-                }
-
-                override fun onIceConnectionReceivingChange(p0: Boolean) {
-                    Log.d("blablabla", "onIceConnectionReceivingChange: $p0")
-                }
-
-                override fun onIceConnectionChange(p0: PeerConnection.IceConnectionState?) {
-                    when (p0) {
-                        PeerConnection.IceConnectionState.DISCONNECTED,
-                        PeerConnection.IceConnectionState.CLOSED,
-                        PeerConnection.IceConnectionState.FAILED -> {
-                            finish()
-                        }
-                        PeerConnection.IceConnectionState.CONNECTED -> {
-                            runOnUiThread {
-                                remote_view_loading.visibility = View.GONE
-                            }
-                        }
-                        else -> {
-                        }
-                    }
-                }
-
-                override fun onIceGatheringChange(p0: PeerConnection.IceGatheringState?) {
-                    Log.d("blablabla", "onIceGatheringChange: $p0")
-                }
-
-                override fun onSignalingChange(p0: PeerConnection.SignalingState?) {
-                    Log.d("blablabla", "onSignalingChange: $p0")
-                }
-
-                override fun onIceCandidatesRemoved(p0: Array<out IceCandidate>?) {
-                    Log.d("blablabla", "onIceCandidatesRemoved: $p0")
-                }
-
-                override fun onRenegotiationNeeded() {
-                    Log.d("blablabla", "onRenegotiationNeeded")
-                }
-
-                override fun onAddTrack(p0: RtpReceiver?, p1: Array<out MediaStream>?) {}
-
-            }
-        )
-
-        rtcClient.initSurfaceView(remote_view)
-        rtcClient.initSurfaceView(local_view)
-        rtcClient.startLocalVideoCapture(local_view)
-        if (lastUser != "") {
-            rtcClient.call(sdpObserver)
-        }
-
-         */
     }
 
     private fun requestCameraPermission(dialogShown: Boolean = false) {
@@ -208,47 +137,6 @@ class SecondVerActivity : AppCompatActivity() {
         Log.d("blablabla", "Camera Permission Denied")
     }
 
-
-    /*private fun negotiationMessageListener(message: NegotiationEvent) {
-        runOnUiThread {
-            when (message) {
-                is NegotiationEvent.Answer -> {
-                    Log.d("blablabla", "AnswerReceived in UI")
-                    rtcClient.onRemoteSessionReceived(
-                        SessionDescription(
-                            SessionDescription.Type.ANSWER,
-                            message.sdp
-                        )
-                    )
-                    remote_view_loading.visibility = View.GONE
-                }
-                is NegotiationEvent.Offer -> {
-                    Log.d("blablabla", "OfferReceived in UI")
-                    lastUser = message.from
-                    rtcClient.onRemoteSessionReceived(
-                        SessionDescription(
-                            SessionDescription.Type.OFFER,
-                            message.sdp
-                        )
-                    )
-                    rtcClient.answer(sdpObserver)
-                    remote_view_loading.visibility = View.GONE
-                }
-                is NegotiationEvent.IceCandidate -> {
-                    rtcClient.addIceCandidate(
-                        IceCandidate(
-                            message.sdpMid,
-                            message.sdpMLineIndex,
-                            message.sdp
-                        )
-                    )
-                }
-                is NegotiationEvent.Discovery -> {
-                    //usersAdapter?.setList(message.userIds)
-                }
-            }
-        }
-    }*/
 
     companion object {
         private const val CAMERA_PERMISSION_REQUEST_CODE = 1

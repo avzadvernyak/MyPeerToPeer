@@ -9,4 +9,12 @@
     <string name="status_failed">Failed</string>
     <string name="status_finished">Finished</string>
     <string name="status_closing">Closing</string>
+
+    <string name="incoming_call">Incoming Call</string>
+    <string name="accept">Accept</string>
+    <string name="reject">Reject</string>
+    <string name="message_title">Call from %1$s</string>
+    <string name="conversation_title">Conversation with %1$s</string>
+
+    <string name="main_toolbar_title">Hello %1$s</string>
 </resources>

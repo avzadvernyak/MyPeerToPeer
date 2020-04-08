@@ -1,10 +1,8 @@
 package m.kampukter.mypeertopeer.data
 
 import android.app.Application
-import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.Observer
 import m.kampukter.mypeertopeer.CallSession
 import m.kampukter.mypeertopeer.data.dto.NegotiationAPI
 import org.webrtc.SurfaceViewRenderer
@@ -14,15 +12,19 @@ class RTCRepository(
     private val negotiationAPI: NegotiationAPI
 ) {
 
-    private val _userIdsLiveData = MutableLiveData<List<String>>()
+    data class IceCandidateInfo(val sdp: String, val sdpMid: String, val sdpMLineIndex: Int)
 
+    private val listIceCandidateInfo = mutableListOf<IceCandidateInfo>()
+    private var receivedOffer: String? = null
+    private var lastFrom: String? = null
+
+    private val _userIdsLiveData = MutableLiveData<List<String>>()
     val userIdsLiveData: LiveData<List<String>>
         get() = _userIdsLiveData
 
-    private val _isOffer = MutableLiveData<Boolean>()
-
-    val isOffer: LiveData<Boolean>
-        get() = _isOffer
+    private val _negotiationEvent = MutableLiveData<NegotiationEvent>()
+    val negotiationEvent: LiveData<NegotiationEvent>
+        get() = _negotiationEvent
 
     private var callSession: CallSession? = null
 
@@ -36,6 +38,8 @@ class RTCRepository(
                 event.sdpMid,
                 event.sdpMLineIndex
             )
+            NegotiationEvent.HangUp -> _negotiationEvent.postValue(NegotiationEvent.HangUp)
+            NegotiationEvent.Connected -> _negotiationEvent.postValue(NegotiationEvent.Connected)
         }
     }
 
@@ -44,20 +48,26 @@ class RTCRepository(
             when (event) {
                 is NegotiationEvent.Discovery -> _userIdsLiveData.postValue(event.userIds)
                 is NegotiationEvent.Offer -> {
-                    if (callSession == null) callSession = CallSession(
-                        context,
-                        event.from,
-                        onOutgoingNegotiationEvent
-                    ).apply {
-                        _isOffer.postValue(true)
-                        handleOffer(event.sdp)
-                    }
+                    receivedOffer = event.sdp
+                    lastFrom = event.from
+                    _negotiationEvent.postValue(NegotiationEvent.IncomingCall(event.from))
                 }
                 is NegotiationEvent.Answer -> {
                     callSession?.handleAnswer(event.sdp)
                 }
                 is NegotiationEvent.IceCandidate -> {
-                    callSession?.handleIceCandidate(event.sdp, event.sdpMid, event.sdpMLineIndex)
+                    if (callSession != null) callSession?.handleIceCandidate(
+                        event.sdp,
+                        event.sdpMid,
+                        event.sdpMLineIndex
+                    )
+                    else listIceCandidateInfo.add(
+                        IceCandidateInfo(
+                            event.sdp,
+                            event.sdpMid,
+                            event.sdpMLineIndex
+                        )
+                    )
                 }
             }
         }
@@ -72,40 +82,39 @@ class RTCRepository(
     }
 
     fun startCall(userId: String, localView: SurfaceViewRenderer, remoteView: SurfaceViewRenderer) {
+
         if (callSession == null) callSession =
             CallSession(context, userId, onOutgoingNegotiationEvent).apply {
-                initSurfaceView(localView)
-                initSurfaceView(remoteView)
+                initSurfaceView(localView, remoteView)
                 start(localView)
             }
     }
 
-    data class MyViewRenderer(
-        val localSVR: SurfaceViewRenderer,
-        val remoteSVR: SurfaceViewRenderer
-    )
-
-    private var myViewRenderer: MyViewRenderer? = null
-        set(value) {
-            Log.d("blablabla", "set view ")
-            if (callSession != null) {
-                value?.let {
-                    callSession?.initSurfaceView(it.localSVR)
-                    callSession?.initSurfaceView(it.remoteSVR)
-                    callSession?.startLocalVideoCapture(it.localSVR)
-
+    fun answerCall(localView: SurfaceViewRenderer, remoteView: SurfaceViewRenderer) {
+        lastFrom?.let { from ->
+            if (callSession == null) callSession =
+                CallSession(context, from, onOutgoingNegotiationEvent).apply {
+                    initSurfaceView(localView, remoteView)
+                    startLocalVideoCapture(localView)
+                    receivedOffer?.let { sdp -> handleOffer(sdp) }
+                    listIceCandidateInfo.forEach { ice ->
+                        handleIceCandidate(
+                            ice.sdp,
+                            ice.sdpMid,
+                            ice.sdpMLineIndex
+                        )
+                    }
                 }
-            }
-            field = value
         }
-
-    fun setSurfaceView(localView: SurfaceViewRenderer, remoteView: SurfaceViewRenderer) {
-        myViewRenderer = MyViewRenderer(localView, remoteView)
     }
 
     fun disposeRTC() {
+        _negotiationEvent.postValue(NegotiationEvent.Waiting)
         callSession?.disposeAll()
         callSession = null
+        receivedOffer = null
+        lastFrom = null
+        listIceCandidateInfo.clear()
     }
 }
 

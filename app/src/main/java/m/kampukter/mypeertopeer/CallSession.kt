@@ -29,9 +29,12 @@ class CallSession(
 
     private val iceServer = listOf(
         PeerConnection.IceServer.builder("stun:stun.l.google.com:19302")
+            .createIceServer(),
+        PeerConnection.IceServer.builder("turn:numb.viagenie.ca")
+            .setUsername("muazkh")
+            .setPassword("webrtc@live.com")
             .createIceServer()
     )
-
     private val peerConnectionObserver = object : PeerConnection.Observer {
         override fun onIceCandidate(candidate: IceCandidate?) {
             if (candidate == null) return
@@ -53,6 +56,19 @@ class CallSession(
         override fun onIceConnectionReceivingChange(p0: Boolean) {}
 
         override fun onIceConnectionChange(p0: PeerConnection.IceConnectionState?) {
+            //Log.d("blablabla", "onIceConnectionChange: $p0")
+            when (p0) {
+                PeerConnection.IceConnectionState.DISCONNECTED,
+                PeerConnection.IceConnectionState.CLOSED,
+                PeerConnection.IceConnectionState.FAILED -> {
+                    onOutgoingNegotiationEvent.invoke(NegotiationEvent.HangUp)
+                }
+                PeerConnection.IceConnectionState.CONNECTED -> {
+                    onOutgoingNegotiationEvent.invoke(NegotiationEvent.Connected)
+                }
+                else -> {
+                }
+            }
 
         }
 
@@ -90,7 +106,7 @@ class CallSession(
     private fun initPeerConnectionFactory(context: Application) {
         val options = PeerConnectionFactory.InitializationOptions.builder(context)
             .setEnableInternalTracer(true)
-            .setFieldTrials("WebRTC-H264HighProfile/Enabled/")
+            .setFieldTrials("")
             .createInitializationOptions()
         PeerConnectionFactory.initialize(options)
     }
@@ -190,9 +206,14 @@ class CallSession(
         peerConnection?.addIceCandidate(IceCandidate(sdpMid, sdpMLineIndex, sdp))
     }
 
-    fun initSurfaceView(view: SurfaceViewRenderer) {
-        remoteVideoView = view
-        view.run {
+    fun initSurfaceView(localView: SurfaceViewRenderer, remoteView: SurfaceViewRenderer) {
+        remoteVideoView = remoteView
+        localView.run {
+            setMirror(true)
+            setEnableHardwareScaler(true)
+            init(rootEglBase.eglBaseContext, null)
+        }
+        remoteView.run {
             setMirror(true)
             setEnableHardwareScaler(true)
             init(rootEglBase.eglBaseContext, null)

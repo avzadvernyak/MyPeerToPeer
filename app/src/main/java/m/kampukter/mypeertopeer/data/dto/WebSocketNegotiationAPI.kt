@@ -4,7 +4,7 @@ import android.util.Log
 import com.google.gson.Gson
 import m.kampukter.mypeertopeer.data.NegotiationEvent
 import m.kampukter.mypeertopeer.data.NegotiationMessage
-import m.kampukter.mypeertopeer.ui.myName
+import m.kampukter.mypeertopeer.myName
 import okhttp3.*
 import java.util.concurrent.TimeUnit
 
@@ -42,26 +42,23 @@ class WebSocketNegotiationAPI : NegotiationAPI {
             val message = gson.fromJson(text, NegotiationMessage::class.java)
             //Log.d("blablabla", "WS  ${message.type} ${message.to}")
             when (message.type) {
-                "discovery" -> message.ids?.let {
-                    /*onNegotiationEvent?.invoke(
-                        NegotiationEvent.Discovery(it)
-                    )*/
+                NegotiationMessage.TYPE_DISCOVERY -> message.ids?.let {
                     onNegotiationEvent?.invoke(
                         NegotiationEvent.Discovery(it)
                     )
                 }
-                "offer" -> {
+                NegotiationMessage.TYPE_OFFER -> {
                     val from = message.from
                     val sdp = message.sdp
                     if (from == null || sdp == null) return
                     onNegotiationEvent?.invoke(NegotiationEvent.Offer(from, "", sdp))
                 }
-                "answer" -> message.sdp?.let {
+                NegotiationMessage.TYPE_ANSWER -> message.sdp?.let {
                     onNegotiationEvent?.invoke(
                         NegotiationEvent.Answer("", "", it)
                     )
                 }
-                "serverUrl" -> {
+                NegotiationMessage.TYPE_CANDIDATE -> {
                     val sdp = message.sdp
                     val sdpMid = message.sdpMid
                     if (sdp == null || sdpMid == null) return
@@ -85,12 +82,15 @@ class WebSocketNegotiationAPI : NegotiationAPI {
     }
 
     override fun connect() {
+        //.url("ws://176.37.84.130:8080/$myName")
+        //.url("ws://192.168.0.69:8080/$myName")
+        //.url("ws://109.254.66.131:8080/$myName")
         webSocket = okHttpClient.newWebSocket(
-                        Request.Builder()
-                        .url("ws://176.37.84.130:8080/$myName")
-                        .build(),
-                        webSocketListener
-                    )
+            Request.Builder()
+                .url("ws://192.168.0.69:8080/$myName")
+                .build(),
+            webSocketListener
+        )
 
     }
 
@@ -98,21 +98,43 @@ class WebSocketNegotiationAPI : NegotiationAPI {
         webSocket?.close(1000, null)
     }
 
-
-    override fun send( dataObject: NegotiationMessage) {
-        webSocket?.send(gson.toJson(dataObject))
-    }
-
     override fun sendOffer(to: String, sdp: String) {
-        webSocket?.send(gson.toJson(NegotiationMessage(to = to, from = myName, type = NegotiationMessage.TYPE_OFFER, sdp = sdp)))
+        webSocket?.send(
+            gson.toJson(
+                NegotiationMessage(
+                    to = to,
+                    from = myName,
+                    type = NegotiationMessage.TYPE_OFFER,
+                    sdp = sdp
+                )
+            )
+        )
     }
 
     override fun sendAnswer(to: String, sdp: String) {
-        webSocket?.send(gson.toJson(NegotiationMessage(to = to, type = NegotiationMessage.TYPE_ANSWER, sdp = sdp)))
+        webSocket?.send(
+            gson.toJson(
+                NegotiationMessage(
+                    to = to,
+                    type = NegotiationMessage.TYPE_ANSWER,
+                    sdp = sdp
+                )
+            )
+        )
     }
 
     override fun sendCandidate(to: String, sdp: String, sdpMid: String, sdpMLineIndex: Int) {
-        webSocket?.send(gson.toJson(NegotiationMessage(to = to, type = NegotiationMessage.TYPE_CANDIDATE, sdp = sdp, sdpMid = sdpMid, sdpMLineIndex = sdpMLineIndex)))
+        webSocket?.send(
+            gson.toJson(
+                NegotiationMessage(
+                    to = to,
+                    type = NegotiationMessage.TYPE_CANDIDATE,
+                    sdp = sdp,
+                    sdpMid = sdpMid,
+                    sdpMLineIndex = sdpMLineIndex
+                )
+            )
+        )
     }
 
 }

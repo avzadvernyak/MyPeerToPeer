@@ -6,7 +6,7 @@ import org.webrtc.SurfaceViewRenderer
 
 class MyViewModel(private val repository: RTCRepository) : ViewModel() {
     val userIdsLiveData = repository.userIdsLiveData
-    val isOffer = repository.isOffer
+    val negotiationEvent = repository.negotiationEvent
     fun connect() {
         repository.connect()
     }
@@ -19,8 +19,8 @@ class MyViewModel(private val repository: RTCRepository) : ViewModel() {
         repository.startCall(userId, localView, remoteView)
     }
 
-    fun setSurfaceView(localView: SurfaceViewRenderer, remoteView: SurfaceViewRenderer) {
-        repository.setSurfaceView(localView, remoteView)
+    fun answerCall(localView: SurfaceViewRenderer, remoteView: SurfaceViewRenderer) {
+        repository.answerCall(localView, remoteView)
     }
 
     fun dispose() {

@@ -46,5 +46,6 @@
 
             </meta-data>
         </activity>
+        <activity android:name=".ui.UserActivity" />
     </application>
 </manifest>
