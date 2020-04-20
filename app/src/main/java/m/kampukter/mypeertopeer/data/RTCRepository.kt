@@ -1,15 +1,19 @@
 package m.kampukter.mypeertopeer.data
 
 import android.app.Application
+import android.content.Intent
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import m.kampukter.mypeertopeer.CallSession
+import m.kampukter.mypeertopeer.data.dto.FCMRestAPI
 import m.kampukter.mypeertopeer.data.dto.NegotiationAPI
-import org.webrtc.SurfaceViewRenderer
+import m.kampukter.mypeertopeer.myName
+import m.kampukter.mypeertopeer.rtc.CallSession
+import m.kampukter.mypeertopeer.ui.MainActivity
 
 class RTCRepository(
     private val context: Application,
-    private val negotiationAPI: NegotiationAPI
+    private val negotiationAPI: NegotiationAPI,
+    private val myFCMRestAPI: FCMRestAPI
 ) {
 
     data class IceCandidateInfo(val sdp: String, val sdpMid: String, val sdpMLineIndex: Int)
@@ -51,6 +55,9 @@ class RTCRepository(
                     receivedOffer = event.sdp
                     lastFrom = event.from
                     _negotiationEvent.postValue(NegotiationEvent.IncomingCall(event.from))
+                    val intent = Intent(context, MainActivity::class.java)
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    context.startActivity(intent)
                 }
                 is NegotiationEvent.Answer -> {
                     callSession?.handleAnswer(event.sdp)
@@ -81,21 +88,31 @@ class RTCRepository(
         negotiationAPI.disconnect()
     }
 
-    fun startCall(userId: String, localView: SurfaceViewRenderer, remoteView: SurfaceViewRenderer) {
-
+    fun startCall(infoLocalVideoCapture: InfoLocalVideoCapture) {
         if (callSession == null) callSession =
-            CallSession(context, userId, onOutgoingNegotiationEvent).apply {
-                initSurfaceView(localView, remoteView)
-                start(localView)
+            CallSession(
+                context,
+                infoLocalVideoCapture.userId,
+                onOutgoingNegotiationEvent
+            ).apply {
+                initSurfaceView(infoLocalVideoCapture.localView, infoLocalVideoCapture.remoteView)
+                startNewSession(infoLocalVideoCapture.localView)
             }
     }
 
-    fun answerCall(localView: SurfaceViewRenderer, remoteView: SurfaceViewRenderer) {
+    fun answerCall(infoLocalVideoCapture: InfoLocalVideoCapture) {
         lastFrom?.let { from ->
             if (callSession == null) callSession =
-                CallSession(context, from, onOutgoingNegotiationEvent).apply {
-                    initSurfaceView(localView, remoteView)
-                    startLocalVideoCapture(localView)
+                CallSession(
+                    context,
+                    from,
+                    onOutgoingNegotiationEvent
+                ).apply {
+                    initSurfaceView(
+                        infoLocalVideoCapture.localView,
+                        infoLocalVideoCapture.remoteView
+                    )
+                    startLocalVideoCapture(infoLocalVideoCapture.localView)
                     receivedOffer?.let { sdp -> handleOffer(sdp) }
                     listIceCandidateInfo.forEach { ice ->
                         handleIceCandidate(
@@ -115,6 +132,13 @@ class RTCRepository(
         receivedOffer = null
         lastFrom = null
         listIceCandidateInfo.clear()
+    }
+
+    fun sendFCMMessage() {
+        //val currentToken = "e3lhY0r1RkOhPI1swPMdvX:APA91bHWVxklBRJhNpdPN-UxmVqMWDQ-BFC6oFnGElqVYXvt8hhRd7mI33PU98ao6G2kLA0QwAtxEs1eVNNu7ocyVgxusSPbGgn4T2Jl6nnQliNj9Ad5xAsMDFlZDDZH5q_EdQsQKVGH"
+        val currentToken =
+            "d51kzI0FSjybtDI7KkLDJd:APA91bFfFo_FzfkiD3MkR9Kv1Y_3Go414nWslRutcDjmOjdgCCIMI4731PskymKtdQLrWGKX_atyjj3vdl_mzd8EdRlHiwf711wJD_liXIp2i8AQzsSrwXoQocu2HZSrn8xvUz3PeORc"
+        myFCMRestAPI.send(currentToken, myName)
     }
 }
 

@@ -1,4 +1,4 @@
-package m.kampukter.mypeertopeer
+package m.kampukter.mypeertopeer.rtc
 
 import android.app.Application
 import android.content.Context
@@ -49,14 +49,7 @@ class CallSession(
             )
         }
 
-        override fun onDataChannel(p0: DataChannel?) {}
-
-        override fun onSelectedCandidatePairChanged(event: CandidatePairChangeEvent?) {}
-
-        override fun onIceConnectionReceivingChange(p0: Boolean) {}
-
         override fun onIceConnectionChange(p0: PeerConnection.IceConnectionState?) {
-            //Log.d("blablabla", "onIceConnectionChange: $p0")
             when (p0) {
                 PeerConnection.IceConnectionState.DISCONNECTED,
                 PeerConnection.IceConnectionState.CLOSED,
@@ -72,15 +65,21 @@ class CallSession(
 
         }
 
+        override fun onAddStream(stream: MediaStream?) {
+            remoteVideoView?.let { stream?.videoTracks?.get(0)?.addSink(it) }
+        }
+
+        override fun onDataChannel(p0: DataChannel?) {}
+
+        override fun onSelectedCandidatePairChanged(event: CandidatePairChangeEvent?) {}
+
+        override fun onIceConnectionReceivingChange(p0: Boolean) {}
+
         override fun onStandardizedIceConnectionChange(newState: PeerConnection.IceConnectionState?) {}
 
         override fun onTrack(transceiver: RtpTransceiver?) {}
 
         override fun onIceGatheringChange(state: PeerConnection.IceGatheringState?) {}
-
-        override fun onAddStream(stream: MediaStream?) {
-            remoteVideoView?.let { stream?.videoTracks?.get(0)?.addSink(it) }
-        }
 
         override fun onSignalingChange(p0: PeerConnection.SignalingState?) {}
 
@@ -134,7 +133,7 @@ class CallSession(
             observer
         )
 
-    fun start(localView: SurfaceViewRenderer) {
+    fun startNewSession(localView: SurfaceViewRenderer) {
         startLocalVideoCapture(localView)
         peerConnection?.createOffer(object : SdpObserver {
             override fun onSetFailure(p0: String?) {}
@@ -214,7 +213,7 @@ class CallSession(
             init(rootEglBase.eglBaseContext, null)
         }
         remoteView.run {
-            setMirror(true)
+            //setMirror(true)
             setEnableHardwareScaler(true)
             init(rootEglBase.eglBaseContext, null)
         }

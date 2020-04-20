@@ -10,6 +10,8 @@ import androidx.lifecycle.LifecycleObserver
 import androidx.lifecycle.OnLifecycleEvent
 import androidx.lifecycle.ProcessLifecycleOwner
 import m.kampukter.mypeertopeer.data.RTCRepository
+import m.kampukter.mypeertopeer.data.dto.FCMRestAPI
+import m.kampukter.mypeertopeer.data.dto.MyFCMRestAPI
 import m.kampukter.mypeertopeer.data.dto.WebSocketNegotiationAPI
 import m.kampukter.mypeertopeer.data.dto.NegotiationAPI
 import m.kampukter.mypeertopeer.ui.UserActivity
@@ -28,7 +30,8 @@ class MainApplication : Application() {
     private var appSharedPreferences: SharedPreferences? = null
     private val module = module {
         single<NegotiationAPI> { WebSocketNegotiationAPI() }
-        single { RTCRepository(this@MainApplication, get()) }
+        single<FCMRestAPI> { MyFCMRestAPI() }
+        single { RTCRepository(this@MainApplication, get(), get()) }
         viewModel { MyViewModel(get()) }
     }
 
@@ -49,6 +52,7 @@ class MainApplication : Application() {
             }
         }
         ProcessLifecycleOwner.get().lifecycle.addObserver(object : LifecycleObserver {
+            private val serviceIntent = Intent(this@MainApplication, WebSocketService::class.java)
             @OnLifecycleEvent(Lifecycle.Event.ON_START)
             fun onForeground() {
                 if (myName.isNullOrEmpty()) {
@@ -57,7 +61,11 @@ class MainApplication : Application() {
                             Intent.FLAG_ACTIVITY_NEW_TASK
                         )
                     )
-                }
+                } else startService(serviceIntent)
+            }
+            @OnLifecycleEvent(Lifecycle.Event.ON_STOP)
+            fun onBackground() {
+                stopService(serviceIntent)
             }
         })
     }
@@ -65,9 +73,7 @@ class MainApplication : Application() {
     fun saveMyName(userName: String) {
         if (userName.isNotBlank()) {
             myName = userName
-
             appSharedPreferences?.edit()?.putString(APP_PREFERENCES_USER, userName)?.apply()
-
         } else Log.e("blablabla", "Login is bad")
     }
 

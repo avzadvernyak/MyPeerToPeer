@@ -16,10 +16,12 @@ import androidx.lifecycle.Observer
 import kotlinx.android.synthetic.main.second_version_activity.*
 import m.kampukter.mypeertopeer.MyViewModel
 import m.kampukter.mypeertopeer.R
+import m.kampukter.mypeertopeer.data.InfoLocalVideoCapture
 import m.kampukter.mypeertopeer.data.NegotiationEvent
+import m.kampukter.mypeertopeer.ui.MainActivity.Companion.EXTRA_MESSAGE_CANDIDATE
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
-class AnswerActivity : AppCompatActivity() {
+class CallActivity : AppCompatActivity() {
 
     private val viewModel by viewModel<MyViewModel>()
     private var lastUser: String? = null
@@ -34,8 +36,10 @@ class AnswerActivity : AppCompatActivity() {
 
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
-        lastUser = intent.getStringExtra(MainActivity.EXTRA_MESSAGE_CANDIDATE)
-        title = getString(R.string.conversation_title, lastUser)
+        lastUser = intent.getStringExtra(EXTRA_MESSAGE_CANDIDATE)
+        connectTextView.text = getString(R.string.conversation_title, lastUser)
+        remote_view.visibility = View.INVISIBLE
+
         checkCameraPermission()
 
         //
@@ -46,20 +50,24 @@ class AnswerActivity : AppCompatActivity() {
         audioManager?.isMicrophoneMute = false
         //
 
+
         hangUpFAB.setOnClickListener {
             viewModel.dispose()
             finish()
         }
-
         viewModel.negotiationEvent.observe(this, Observer {
             when (it) {
                 is NegotiationEvent.HangUp -> {
                     viewModel.dispose()
                     finish()
                 }
-                is NegotiationEvent.Connected -> remote_view_loading.visibility = View.GONE
+                is NegotiationEvent.Connected -> {
+                    remote_view_loading.visibility = View.GONE
+                    remote_view.visibility = View.VISIBLE
+                }
             }
         })
+
     }
 
     override fun onDestroy() {
@@ -84,7 +92,8 @@ class AnswerActivity : AppCompatActivity() {
     }
 
     private fun onCameraPermissionGranted() {
-        viewModel.answerCall(local_view, remote_view)
+        lastUser?.let { viewModel.startCall(InfoLocalVideoCapture(it, local_view, remote_view)) }
+
     }
 
     private fun requestCameraPermission(dialogShown: Boolean = false) {
@@ -134,6 +143,7 @@ class AnswerActivity : AppCompatActivity() {
     private fun onCameraPermissionDenied() {
         Log.d("blablabla", "Camera Permission Denied")
     }
+
 
     companion object {
         private const val CAMERA_PERMISSION_REQUEST_CODE = 1

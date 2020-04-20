@@ -26,8 +26,9 @@ sealed class NegotiationEvent {
         val sdpMLineIndex: Int
     ) : NegotiationEvent()
 
+    data class IncomingCall(val from: String) : NegotiationEvent()
+
     object HangUp : NegotiationEvent()
     object Connected : NegotiationEvent()
-    data class IncomingCall(val from: String) : NegotiationEvent()
     object Waiting : NegotiationEvent()
 }

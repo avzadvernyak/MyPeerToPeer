@@ -2,6 +2,7 @@ package m.kampukter.mypeertopeer.ui
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -14,6 +15,7 @@ import m.kampukter.mypeertopeer.R
 import m.kampukter.mypeertopeer.data.NegotiationEvent
 import m.kampukter.mypeertopeer.myName
 import org.koin.androidx.viewmodel.ext.android.viewModel
+
 
 /*
 1 важное - наследник PeerConnection.Observer
@@ -30,10 +32,10 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.main_activity)
+        setSupportActionBar(mainToolbar).apply {
+            title = getString(R.string.main_toolbar_title, myName)
+        }
 
-        title = getString(R.string.main_toolbar_title, myName)
-        
-        if (!myName.isNullOrEmpty()) viewModel.connect()
         viewModel.negotiationEvent.observe(
             this,
             Observer {
@@ -43,13 +45,13 @@ class MainActivity : AppCompatActivity() {
                             .setMessage(getString(R.string.message_title, it.from))
                             .setPositiveButton(getString(R.string.accept)) { _, _ ->
                                 startActivity(
-                                    Intent(this, AnswerActivity::class.java).putExtra(
+                                    Intent(this, CallActivity::class.java).putExtra(
                                         EXTRA_MESSAGE_CANDIDATE,
                                         it.from
                                     )
                                 )
                             }
-                            .setNegativeButton(getString(R.string.reject)) { _, _ ->  }
+                            .setNegativeButton(getString(R.string.reject)) { _, _ -> }
                             .create().show()
                     }
                 }
@@ -57,7 +59,7 @@ class MainActivity : AppCompatActivity() {
         viewModel.userIdsLiveData.observe(this, Observer { usersAdapter?.setList(it) })
         usersAdapter = UsersAdapter { item ->
             startActivity(
-                Intent(this, SecondVerActivity::class.java).putExtra(
+                Intent(this, CallActivity::class.java).putExtra(
                     EXTRA_MESSAGE_CANDIDATE,
                     item
                 )
@@ -71,18 +73,20 @@ class MainActivity : AppCompatActivity() {
         callFAB.visibility = View.INVISIBLE
         callFAB.setOnClickListener {
             startActivity(
-                Intent(this, SecondVerActivity::class.java).putExtra(
+                Intent(this, CallActivity::class.java).putExtra(
                     EXTRA_MESSAGE_CANDIDATE,
                     ""
                 )
             )
         }
+        callFCMFAB.setOnClickListener { viewModel.sendFCM() }
     }
 
     override fun onDestroy() {
         super.onDestroy()
 
-        viewModel.disconnect()
+        //viewModel.disconnect()
+        Log.d("blablabla", "Destroy MainActivity")
     }
 
     companion object {
