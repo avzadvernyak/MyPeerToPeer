@@ -4,13 +4,14 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import m.kampukter.mypeertopeer.R
+import m.kampukter.mypeertopeer.data.UserData
 
 typealias ItemClickListener<T> = (T) -> Unit
 
 class UsersAdapter(
-    private val itemClickListener: ItemClickListener<String>? = null
+    private val itemClickListener: ItemClickListener<UserData>? = null
 ) : RecyclerView.Adapter<UsersViewHolder>() {
-    private var models: List<String>? = null
+    private var calledUsers: List<UserData>? = null
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): UsersViewHolder {
         return UsersViewHolder(
@@ -21,17 +22,17 @@ class UsersAdapter(
     }
 
     override fun getItemCount(): Int {
-        return models?.size ?: 0
+        return calledUsers?.size ?: 0
     }
 
     override fun onBindViewHolder(holder: UsersViewHolder, position: Int) {
-        models?.get(position)?.let { item ->
+        calledUsers?.get(position)?.let { item ->
             holder.bind(item, itemClickListener)
         }
     }
 
-    fun setList(list: List<String>) {
-        this.models = list
+    fun setList(list: List<UserData>) {
+        this.calledUsers = list
         notifyDataSetChanged()
     }
 }

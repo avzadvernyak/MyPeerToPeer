@@ -17,4 +17,7 @@
     <string name="conversation_title">Conversation with %1$s</string>
 
     <string name="main_toolbar_title">Hello %1$s</string>
+
+    <!-- FCM -->
+    <string name="default_notification_channel_id" translatable="false">fcm_default_channel</string>
 </resources>

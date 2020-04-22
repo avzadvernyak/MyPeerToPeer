@@ -2,6 +2,7 @@ package m.kampukter.mypeertopeer.data
 
 import android.app.Application
 import android.content.Intent
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import m.kampukter.mypeertopeer.data.dto.FCMRestAPI
@@ -15,6 +16,27 @@ class RTCRepository(
     private val negotiationAPI: NegotiationAPI,
     private val myFCMRestAPI: FCMRestAPI
 ) {
+
+    // Заглушки пока нет базы
+    private val listCalledUser = listOf(
+        UserData(
+            "C2yw9XLb-4-R1zlo31STJyblbB5IIVPBJLO",
+            "Nexus",
+            "ewkqSpOySimG0nmIjX909E:APA91bElyhhhmdrwi51DBa0cWx2bB4DIQkNHe8wLRDsfnnQnJeXBA2zKlm2_tVyQ0Odf0Fbe-Or6Q8wVKTY0Lv7urs9uF4pK20MTNRrX6_KKIOqCitvflK9tmw8t2jrlAyKaOm6ptqRW"
+
+        )
+        , UserData(
+            "R4OI8E3i-3-5gWHZX35rqsq6qJcYHD1VMdq",
+            "Anatoly",
+            "fEmnM55RRlaJo1ms7L8lOK:APA91bEiYzl2VyPnmUCd0FGe6S33fujM5fEQ_uh6H3YrLy9BFd8cvA7rZ20ghXWTQxqPV8XNrfpWzKrjGaIY4LrBiinvEoNyu0UBDPbrOe5h2KQEzncsY_Mf8-EEofE_ZHtjQ83DXM75"
+        )
+    )
+    val mapCalledUser = listCalledUser.associateBy({ it.id }, { listOf(it.userName, it.tokenFCM) })
+    // Конец заглушки
+
+    private val _listCalledUserLiveData = MutableLiveData<List<UserData>>()
+    val listCalledUserLiveData: LiveData<List<UserData>>
+        get() = _listCalledUserLiveData
 
     data class IceCandidateInfo(val sdp: String, val sdpMid: String, val sdpMLineIndex: Int)
 
@@ -48,6 +70,7 @@ class RTCRepository(
     }
 
     init {
+        _listCalledUserLiveData.postValue(listCalledUser)
         negotiationAPI.onNegotiationEvent = { event ->
             when (event) {
                 is NegotiationEvent.Discovery -> _userIdsLiveData.postValue(event.userIds)
@@ -55,9 +78,9 @@ class RTCRepository(
                     receivedOffer = event.sdp
                     lastFrom = event.from
                     _negotiationEvent.postValue(NegotiationEvent.IncomingCall(event.from))
-                    val intent = Intent(context, MainActivity::class.java)
+                   /* val intent = Intent(context, MainActivity::class.java)
                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    context.startActivity(intent)
+                    context.startActivity(intent)*/
                 }
                 is NegotiationEvent.Answer -> {
                     callSession?.handleAnswer(event.sdp)
@@ -134,11 +157,15 @@ class RTCRepository(
         listIceCandidateInfo.clear()
     }
 
-    fun sendFCMMessage() {
-        //val currentToken = "e3lhY0r1RkOhPI1swPMdvX:APA91bHWVxklBRJhNpdPN-UxmVqMWDQ-BFC6oFnGElqVYXvt8hhRd7mI33PU98ao6G2kLA0QwAtxEs1eVNNu7ocyVgxusSPbGgn4T2Jl6nnQliNj9Ad5xAsMDFlZDDZH5q_EdQsQKVGH"
-        val currentToken =
-            "d51kzI0FSjybtDI7KkLDJd:APA91bFfFo_FzfkiD3MkR9Kv1Y_3Go414nWslRutcDjmOjdgCCIMI4731PskymKtdQLrWGKX_atyjj3vdl_mzd8EdRlHiwf711wJD_liXIp2i8AQzsSrwXoQocu2HZSrn8xvUz3PeORc"
-        myFCMRestAPI.send(currentToken, myName)
+    fun sendFCMMessage(token: String) {
+        myFCMRestAPI.send(token, myName)
+    }
+
+    fun getCalledUserData(userId: String): LiveData<UserData> {
+        val retValue = MutableLiveData<UserData>()
+        val rtewq = mapCalledUser[userId]?.toList()
+        rtewq?.let { retValue.postValue(UserData(id = userId, userName = it[0], tokenFCM = it[1])) }
+        return retValue
     }
 }
 

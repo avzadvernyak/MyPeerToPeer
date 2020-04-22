@@ -5,9 +5,8 @@ import androidx.lifecycle.LifecycleService
 import com.google.gson.Gson
 import m.kampukter.mypeertopeer.data.NegotiationEvent
 import m.kampukter.mypeertopeer.data.NegotiationMessage
-import m.kampukter.mypeertopeer.myName
+import m.kampukter.mypeertopeer.myId
 import okhttp3.*
-import okio.ByteString
 import java.util.concurrent.TimeUnit
 
 
@@ -89,7 +88,8 @@ class WebSocketNegotiationAPI : NegotiationAPI, LifecycleService() {
         //.url("ws://109.254.66.131:8080/$myName")
         webSocket = okHttpClient.newWebSocket(
             Request.Builder()
-                .url("ws://176.37.84.130:9517/$myName")
+                .url("ws://176.37.84.130:9517/$myId")
+                //.url("ws://192.168.0.69:8080/$myName")
                 .build(),
             webSocketListener
         )
@@ -105,7 +105,7 @@ class WebSocketNegotiationAPI : NegotiationAPI, LifecycleService() {
             gson.toJson(
                 NegotiationMessage(
                     to = to,
-                    from = myName,
+                    from = myId,
                     type = NegotiationMessage.TYPE_OFFER,
                     sdp = sdp
                 )

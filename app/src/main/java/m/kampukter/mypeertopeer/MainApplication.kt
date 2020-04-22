@@ -22,7 +22,9 @@ import org.koin.dsl.module
 
 private const val APP_PREFERENCES = "appSettings"
 private const val APP_PREFERENCES_USER = "user"
+private const val APP_PREFERENCES_USER_ID = "userId"
 var myName: String? = null
+var myId: String? = null
 lateinit var privateNotesApplication: MainApplication
 
 @Suppress("unused")
@@ -49,13 +51,17 @@ class MainApplication : Application() {
                 appShare.getString(APP_PREFERENCES_USER, null)?.let {
                     myName = it
                 }
+                appShare.getString(APP_PREFERENCES_USER_ID, null)?.let {
+                    myId = it
+                }
             }
         }
         ProcessLifecycleOwner.get().lifecycle.addObserver(object : LifecycleObserver {
             private val serviceIntent = Intent(this@MainApplication, WebSocketService::class.java)
+
             @OnLifecycleEvent(Lifecycle.Event.ON_START)
             fun onForeground() {
-                if (myName.isNullOrEmpty()) {
+                if (myName.isNullOrEmpty() || myId.isNullOrEmpty() ) {
                     startActivity(
                         Intent(baseContext, UserActivity::class.java).addFlags(
                             Intent.FLAG_ACTIVITY_NEW_TASK
@@ -63,6 +69,7 @@ class MainApplication : Application() {
                     )
                 } else startService(serviceIntent)
             }
+
             @OnLifecycleEvent(Lifecycle.Event.ON_STOP)
             fun onBackground() {
                 stopService(serviceIntent)
@@ -70,10 +77,15 @@ class MainApplication : Application() {
         })
     }
 
-    fun saveMyName(userName: String) {
+    fun saveMyName(userName: String, userId: String) {
         if (userName.isNotBlank()) {
             myName = userName
-            appSharedPreferences?.edit()?.putString(APP_PREFERENCES_USER, userName)?.apply()
+            myId = userId
+            appSharedPreferences?.edit()
+                ?.putString(APP_PREFERENCES_USER, userName)
+                ?.putString(APP_PREFERENCES_USER_ID, userId)
+                ?.apply()
+            Log.e("blablabla", "myName $myName myId $myId")
         } else Log.e("blablabla", "Login is bad")
     }
 

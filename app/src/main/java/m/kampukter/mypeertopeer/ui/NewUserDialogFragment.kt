@@ -19,7 +19,12 @@ class NewUserDialogFragment: DialogFragment() {
         builder.setView(input)
             .setTitle("New User")
             .setPositiveButton(android.R.string.yes) { _, _ ->
-                privateNotesApplication.saveMyName(input.text.toString())
+
+                val stringCharacters1 = ('a'..'z') + ('A'..'Z') + ('0'..'9').toList().toTypedArray()
+                val keyOne = (1..8).map { stringCharacters1.random() }.joinToString("")
+                val keyTwo = (1..24).map { stringCharacters1.random() }.joinToString("")
+
+                privateNotesApplication.saveMyName(input.text.toString(),"$keyOne-${(1..9).random()}-$keyTwo")
                 startActivity(
                     Intent(
                         activity,
