@@ -83,13 +83,13 @@ class WebSocketNegotiationAPI : NegotiationAPI, LifecycleService() {
     }
 
     override fun connect() {
-        //.url("ws://176.37.84.130:8080/$myName")
-        //.url("ws://192.168.0.69:8080/$myName")
-        //.url("ws://109.254.66.131:8080/$myName")
+        //.url("ws://176.37.84.130:8080/$myId")
+        //.url("ws://192.168.0.69:8080/$myId")
+        //.url("ws://109.254.66.131:8080/$myId")
         webSocket = okHttpClient.newWebSocket(
             Request.Builder()
-                .url("ws://176.37.84.130:9517/$myId")
-                //.url("ws://192.168.0.69:8080/$myName")
+                //.url("ws://176.37.84.130:9517/$myId")
+                .url("ws://192.168.0.69:8080/$myId")
                 .build(),
             webSocketListener
         )

@@ -1,6 +1,8 @@
 package m.kampukter.mypeertopeer.data.dto
 
 import android.util.Log
+import m.kampukter.mypeertopeer.myId
+import m.kampukter.mypeertopeer.myName
 import okhttp3.*
 import org.json.JSONObject
 import java.io.IOException
@@ -14,12 +16,13 @@ class MyFCMRestAPI : FCMRestAPI {
     private val mClient = OkHttpClient()
     private val myJSON = MediaType.parse("application/json")
 
-    override fun send(respondentToken: String, from: String?) {
+    override fun send(respondentToken: String) {
         val notification = JSONObject()
         val data = JSONObject()
         val root = JSONObject()
         notification.put("title", titleMessage)
-        notification.put("from", from)
+        notification.put("from_name", myName)
+        notification.put("from_id", myId)
         data.put("body", notification)
         root.put("data", data)
         root.put("to", respondentToken)

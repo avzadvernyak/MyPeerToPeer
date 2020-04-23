@@ -18,7 +18,6 @@ import m.kampukter.mypeertopeer.MyViewModel
 import m.kampukter.mypeertopeer.R
 import m.kampukter.mypeertopeer.data.InfoLocalVideoCapture
 import m.kampukter.mypeertopeer.data.NegotiationEvent
-import m.kampukter.mypeertopeer.ui.MainActivity.Companion.EXTRA_MESSAGE_CANDIDATE
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class CallActivity : AppCompatActivity() {
@@ -37,7 +36,6 @@ class CallActivity : AppCompatActivity() {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         lastUser = intent.getStringExtra(EXTRA_MESSAGE_CANDIDATE)
-        connectTextView.text = getString(R.string.conversation_title, lastUser)
         remote_view.visibility = View.INVISIBLE
 
         checkCameraPermission()
@@ -55,6 +53,19 @@ class CallActivity : AppCompatActivity() {
             viewModel.dispose()
             finish()
         }
+        viewModel.setUserDataId(lastUser)
+        viewModel.currentUserStatus.observe(this, Observer {
+            when (it) {
+                is MyViewModel.UserStatusEvent.UserConnected -> {
+                    connectTextView.text = getString(R.string.conversation_title, it.user.userName)
+                }
+                is MyViewModel.UserStatusEvent.UserDisconnected -> {
+                    viewModel.dispose()
+                    finish()
+                }
+            }
+
+        })
         viewModel.negotiationEvent.observe(this, Observer {
             when (it) {
                 is NegotiationEvent.HangUp -> {
@@ -148,5 +159,6 @@ class CallActivity : AppCompatActivity() {
     companion object {
         private const val CAMERA_PERMISSION_REQUEST_CODE = 1
         private const val CAMERA_PERMISSION = Manifest.permission.CAMERA
+        const val EXTRA_MESSAGE_CANDIDATE = "EXTRA_MESSAGE_CANDIDATE"
     }
 }

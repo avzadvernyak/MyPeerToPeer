@@ -73,6 +73,8 @@ class MyViewModel(private val repository: RTCRepository) : ViewModel() {
                 else postValue(UserStatusEvent.UserDisconnected(it))
             }
         }
-
     }
+
+    // Код работы с базой пользователей
+    fun saveUserData(userData: UserData) {repository.saveUsersData(userData)}
 }

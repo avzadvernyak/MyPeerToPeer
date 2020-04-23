@@ -15,7 +15,10 @@ import kotlinx.android.synthetic.main.main_activity.*
 import m.kampukter.mypeertopeer.MyViewModel
 import m.kampukter.mypeertopeer.R
 import m.kampukter.mypeertopeer.data.NegotiationEvent
+import m.kampukter.mypeertopeer.data.UserData
+import m.kampukter.mypeertopeer.myId
 import m.kampukter.mypeertopeer.myName
+import m.kampukter.mypeertopeer.ui.CallActivity.Companion.EXTRA_MESSAGE_CANDIDATE
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
 
@@ -40,16 +43,6 @@ class MainActivity : AppCompatActivity() {
         setSupportActionBar(mainToolbar).apply {
             title = getString(R.string.main_toolbar_title, myName)
         }
-        /*
-        "${Build.MANUFACTURER} ${Build.MODEL}"
-плюс
-- ${(1..9).random()}
-
-        val stringCharacters1 = ('a'..'z') + ('A'..'Z') + ('0'..'9').toList().toTypedArray()
-        val keyOne = (1..8).map { stringCharacters1.random() }.joinToString("")
-        val keyTwo = (1..24).map { stringCharacters1.random() }.joinToString("")
-        Log.d("blablabla", "$keyOne-${(1..9).random()}-$keyTwo")
- */
         viewModel.negotiationEvent.observe(
             this,
             Observer {
@@ -70,13 +63,11 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
             })
-        //viewModel.userIdsLiveData.observe(this, Observer { usersAdapter?.setList(it) })
         viewModel.listCalledUserLiveData.observe(this, Observer { listCalledUser ->
             usersAdapter?.setList(listCalledUser)
         })
         usersAdapter = UsersAdapter { item ->
             startActivity(
-                //Intent(this, CallActivity::class.java).putExtra(
                 Intent(this, OutgoingCallActivity::class.java).putExtra(
                     EXTRA_MESSAGE_CANDIDATE,
                     item.id
@@ -101,13 +92,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-
-        //viewModel.disconnect()
         Log.d("blablabla", "Destroy MainActivity")
-    }
-
-    companion object {
-        const val EXTRA_MESSAGE_CANDIDATE = "EXTRA_MESSAGE_CANDIDATE"
     }
 
     private fun getFCMToken() {
@@ -119,7 +104,7 @@ class MainActivity : AppCompatActivity() {
                 }
                 // Get new Instance ID token
                 val token = task.result?.token
-                Log.d("blablabla", "token :$token")
+                viewModel.saveUserData(UserData(id = myId!!, userName = "$myName", tokenFCM = token!!))
             })
     }
 }

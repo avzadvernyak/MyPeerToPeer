@@ -14,7 +14,7 @@ import com.google.firebase.messaging.RemoteMessage
 import com.google.gson.Gson
 import m.kampukter.mypeertopeer.ui.CallActivity
 
-data class FcmDataMessage(val from: String, val title: String)
+data class FcmDataMessage(val from_id: String, val from_name: String, val title: String)
 class MyFCMService : FirebaseMessagingService() {
     override fun onNewToken(token: String) {
         Log.d("blablabla", "Refreshed token: $token")
@@ -22,14 +22,21 @@ class MyFCMService : FirebaseMessagingService() {
 
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         remoteMessage.data.let {
+            //Log.d("blablabla", "---: $it")
             val message = Gson().fromJson(it["body"], FcmDataMessage::class.java)
             sendNotification(message)
         }
     }
 
     private fun sendNotification(messageBody: FcmDataMessage) {
-        val intent = Intent(this, CallActivity::class.java)
+        val intent = Intent(this, CallActivity::class.java).apply {
+            putExtra(
+                CallActivity.EXTRA_MESSAGE_CANDIDATE,
+                messageBody.from_id
+            )
+        }
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+
         val pendingIntent = PendingIntent.getActivity(
             this, 0, intent,
             PendingIntent.FLAG_ONE_SHOT
@@ -39,7 +46,7 @@ class MyFCMService : FirebaseMessagingService() {
         val notificationBuilder = NotificationCompat.Builder(this, channelId)
             .setSmallIcon(android.R.drawable.ic_menu_call)
             .setContentTitle(messageBody.title)
-            .setContentText(messageBody.from)
+            .setContentText(messageBody.from_name)
             .setAutoCancel(true)
             .setSound(defaultSoundUri)
             .setContentIntent(pendingIntent)

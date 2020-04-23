@@ -1,21 +1,25 @@
 package m.kampukter.mypeertopeer.data
 
 import android.app.Application
-import android.content.Intent
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import m.kampukter.mypeertopeer.data.dto.FCMRestAPI
 import m.kampukter.mypeertopeer.data.dto.NegotiationAPI
-import m.kampukter.mypeertopeer.myName
+import m.kampukter.mypeertopeer.data.dto.UsersInfoAPI
+import retrofit2.Callback
 import m.kampukter.mypeertopeer.rtc.CallSession
-import m.kampukter.mypeertopeer.ui.MainActivity
+import okhttp3.ResponseBody
+import retrofit2.Call
+import retrofit2.Response
 
 class RTCRepository(
     private val context: Application,
     private val negotiationAPI: NegotiationAPI,
     private val myFCMRestAPI: FCMRestAPI
 ) {
+
+    private val apiInfoSensor = UsersInfoAPI.create()
 
     // Заглушки пока нет базы
     private val listCalledUser = listOf(
@@ -70,7 +74,9 @@ class RTCRepository(
     }
 
     init {
-        _listCalledUserLiveData.postValue(listCalledUser)
+        //Получаем данные всех зарегистрированных в приложении пользователей
+        getUsersData()
+
         negotiationAPI.onNegotiationEvent = { event ->
             when (event) {
                 is NegotiationEvent.Discovery -> _userIdsLiveData.postValue(event.userIds)
@@ -78,9 +84,9 @@ class RTCRepository(
                     receivedOffer = event.sdp
                     lastFrom = event.from
                     _negotiationEvent.postValue(NegotiationEvent.IncomingCall(event.from))
-                   /* val intent = Intent(context, MainActivity::class.java)
-                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    context.startActivity(intent)*/
+                    /* val intent = Intent(context, MainActivity::class.java)
+                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                     context.startActivity(intent)*/
                 }
                 is NegotiationEvent.Answer -> {
                     callSession?.handleAnswer(event.sdp)
@@ -158,11 +164,44 @@ class RTCRepository(
     }
 
     fun sendFCMMessage(token: String) {
-        myFCMRestAPI.send(token, myName)
+        myFCMRestAPI.send(token)
+    }
+
+    private fun getUsersData() {
+        val call = apiInfoSensor.getUsersData()
+        call.enqueue(object : Callback<List<UserData>> {
+            override fun onResponse(
+                call: Call<List<UserData>>,
+                response: Response<List<UserData>>
+            ) {
+                response.body().let { _listCalledUserLiveData.postValue(it) }
+            }
+
+            override fun onFailure(call: Call<List<UserData>>, t: Throwable) {
+                t.message?.let {
+                    Log.d("blablabla", "Retrofit2 onFailure GET")
+                }
+            }
+        })
+    }
+
+    fun saveUsersData(userData: UserData) {
+        val call = apiInfoSensor.saveUserInfo(userData.id, userData.userName, userData.tokenFCM)
+        call.enqueue(object : Callback<ResponseBody> {
+            override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
+                Log.d("blablabla", "Retrofit2 onFailure POST")
+            }
+
+            override fun onResponse(call: Call<ResponseBody>, response: Response<ResponseBody>) {
+            }
+        })
     }
 
     fun getCalledUserData(userId: String): LiveData<UserData> {
+
         val retValue = MutableLiveData<UserData>()
+
+
         val rtewq = mapCalledUser[userId]?.toList()
         rtewq?.let { retValue.postValue(UserData(id = userId, userName = it[0], tokenFCM = it[1])) }
         return retValue

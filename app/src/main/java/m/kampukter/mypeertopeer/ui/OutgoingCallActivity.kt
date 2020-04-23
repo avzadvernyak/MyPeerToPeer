@@ -9,6 +9,7 @@ import androidx.lifecycle.Observer
 import kotlinx.android.synthetic.main.outgoing_call_aactivity.*
 import m.kampukter.mypeertopeer.MyViewModel
 import m.kampukter.mypeertopeer.R
+import m.kampukter.mypeertopeer.ui.CallActivity.Companion.EXTRA_MESSAGE_CANDIDATE
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class OutgoingCallActivity : AppCompatActivity() {
@@ -19,7 +20,7 @@ class OutgoingCallActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        calledUserId = intent.getStringExtra(MainActivity.EXTRA_MESSAGE_CANDIDATE)
+        calledUserId = intent.getStringExtra(EXTRA_MESSAGE_CANDIDATE)
         setContentView(R.layout.outgoing_call_aactivity)
         hangUpFAB.visibility = View.INVISIBLE
 
@@ -30,7 +31,7 @@ class OutgoingCallActivity : AppCompatActivity() {
                     Log.d("blablabla", "UserConnected ${userStatus.user.userName}")
                     startActivity(
                         Intent(this, CallActivity::class.java).putExtra(
-                            MainActivity.EXTRA_MESSAGE_CANDIDATE,
+                            EXTRA_MESSAGE_CANDIDATE,
                             userStatus.user.id
                         )
                     )
