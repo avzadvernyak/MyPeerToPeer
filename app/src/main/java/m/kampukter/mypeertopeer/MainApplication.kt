@@ -9,12 +9,16 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleObserver
 import androidx.lifecycle.OnLifecycleEvent
 import androidx.lifecycle.ProcessLifecycleOwner
+import com.google.android.gms.tasks.OnCompleteListener
+import com.google.firebase.iid.FirebaseInstanceId
 import m.kampukter.mypeertopeer.data.RTCRepository
+import m.kampukter.mypeertopeer.data.UserData
 import m.kampukter.mypeertopeer.data.dto.FCMRestAPI
 import m.kampukter.mypeertopeer.data.dto.MyFCMRestAPI
 import m.kampukter.mypeertopeer.data.dto.WebSocketNegotiationAPI
 import m.kampukter.mypeertopeer.data.dto.NegotiationAPI
 import m.kampukter.mypeertopeer.ui.UserActivity
+import org.koin.android.ext.android.inject
 import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.core.context.startKoin
@@ -29,13 +33,16 @@ lateinit var privateNotesApplication: MainApplication
 
 @Suppress("unused")
 class MainApplication : Application() {
-    private var appSharedPreferences: SharedPreferences? = null
+
+    lateinit var serviceIntent: Intent
     private val module = module {
         single<NegotiationAPI> { WebSocketNegotiationAPI() }
         single<FCMRestAPI> { MyFCMRestAPI() }
         single { RTCRepository(this@MainApplication, get(), get()) }
         viewModel { MyViewModel(get()) }
     }
+
+    private var appSharedPreferences: SharedPreferences? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -45,6 +52,9 @@ class MainApplication : Application() {
             androidContext(this@MainApplication)
             modules(module)
         }
+
+        serviceIntent = Intent(this@MainApplication, WebSocketService::class.java)
+
         appSharedPreferences = getSharedPreferences(APP_PREFERENCES, AppCompatActivity.MODE_PRIVATE)
         appSharedPreferences?.let { appShare ->
             if (appShare.contains(APP_PREFERENCES_USER)) {
@@ -57,11 +67,10 @@ class MainApplication : Application() {
             }
         }
         ProcessLifecycleOwner.get().lifecycle.addObserver(object : LifecycleObserver {
-            private val serviceIntent = Intent(this@MainApplication, WebSocketService::class.java)
 
             @OnLifecycleEvent(Lifecycle.Event.ON_START)
             fun onForeground() {
-                if (myName.isNullOrEmpty() || myId.isNullOrEmpty() ) {
+                if (myName.isNullOrEmpty() || myId.isNullOrEmpty()) {
                     startActivity(
                         Intent(baseContext, UserActivity::class.java).addFlags(
                             Intent.FLAG_ACTIVITY_NEW_TASK
@@ -85,7 +94,26 @@ class MainApplication : Application() {
                 ?.putString(APP_PREFERENCES_USER, userName)
                 ?.putString(APP_PREFERENCES_USER_ID, userId)
                 ?.apply()
-            Log.e("blablabla", "myName $myName myId $myId")
+            val repository by inject<RTCRepository>()
+            FirebaseInstanceId.getInstance().instanceId
+                .addOnCompleteListener(OnCompleteListener { task ->
+                    if (!task.isSuccessful) {
+                        Log.d("blablabla", "getInstanceId failed $task.exception")
+                        return@OnCompleteListener
+                    }
+                    // Get new Instance ID token
+                    val token = task.result?.token
+                    token?.let {
+                        repository.saveUsersData(
+                            UserData(
+                                id = userId,
+                                userName = userName,
+                                tokenFCM = it
+                            )
+                        )
+                    }
+                })
+            startService(serviceIntent)
         } else Log.e("blablabla", "Login is bad")
     }
 

@@ -12,17 +12,24 @@ import androidx.core.app.NotificationCompat
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import com.google.gson.Gson
+import m.kampukter.mypeertopeer.data.RTCRepository
+import m.kampukter.mypeertopeer.data.UserData
 import m.kampukter.mypeertopeer.ui.CallActivity
+import org.koin.android.ext.android.inject
 
 data class FcmDataMessage(val from_id: String, val from_name: String, val title: String)
 class MyFCMService : FirebaseMessagingService() {
+
+    private val repository by inject<RTCRepository>()
     override fun onNewToken(token: String) {
         Log.d("blablabla", "Refreshed token: $token")
+        myId?.let {
+            repository.saveUsersData(UserData(id = it, userName = "$myName", tokenFCM = token))
+        }
     }
 
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         remoteMessage.data.let {
-            //Log.d("blablabla", "---: $it")
             val message = Gson().fromJson(it["body"], FcmDataMessage::class.java)
             sendNotification(message)
         }

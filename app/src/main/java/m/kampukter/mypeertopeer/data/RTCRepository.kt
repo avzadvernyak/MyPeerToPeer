@@ -21,23 +21,6 @@ class RTCRepository(
 
     private val apiInfoSensor = UsersInfoAPI.create()
 
-    // Заглушки пока нет базы
-    private val listCalledUser = listOf(
-        UserData(
-            "C2yw9XLb-4-R1zlo31STJyblbB5IIVPBJLO",
-            "Nexus",
-            "ewkqSpOySimG0nmIjX909E:APA91bElyhhhmdrwi51DBa0cWx2bB4DIQkNHe8wLRDsfnnQnJeXBA2zKlm2_tVyQ0Odf0Fbe-Or6Q8wVKTY0Lv7urs9uF4pK20MTNRrX6_KKIOqCitvflK9tmw8t2jrlAyKaOm6ptqRW"
-
-        )
-        , UserData(
-            "R4OI8E3i-3-5gWHZX35rqsq6qJcYHD1VMdq",
-            "Anatoly",
-            "fEmnM55RRlaJo1ms7L8lOK:APA91bEiYzl2VyPnmUCd0FGe6S33fujM5fEQ_uh6H3YrLy9BFd8cvA7rZ20ghXWTQxqPV8XNrfpWzKrjGaIY4LrBiinvEoNyu0UBDPbrOe5h2KQEzncsY_Mf8-EEofE_ZHtjQ83DXM75"
-        )
-    )
-    val mapCalledUser = listCalledUser.associateBy({ it.id }, { listOf(it.userName, it.tokenFCM) })
-    // Конец заглушки
-
     private val _listCalledUserLiveData = MutableLiveData<List<UserData>>()
     val listCalledUserLiveData: LiveData<List<UserData>>
         get() = _listCalledUserLiveData
@@ -84,9 +67,6 @@ class RTCRepository(
                     receivedOffer = event.sdp
                     lastFrom = event.from
                     _negotiationEvent.postValue(NegotiationEvent.IncomingCall(event.from))
-                    /* val intent = Intent(context, MainActivity::class.java)
-                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                     context.startActivity(intent)*/
                 }
                 is NegotiationEvent.Answer -> {
                     callSession?.handleAnswer(event.sdp)
@@ -167,7 +147,7 @@ class RTCRepository(
         myFCMRestAPI.send(token)
     }
 
-    private fun getUsersData() {
+    fun getUsersData() {
         val call = apiInfoSensor.getUsersData()
         call.enqueue(object : Callback<List<UserData>> {
             override fun onResponse(
@@ -191,20 +171,9 @@ class RTCRepository(
             override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
                 Log.d("blablabla", "Retrofit2 onFailure POST")
             }
-
             override fun onResponse(call: Call<ResponseBody>, response: Response<ResponseBody>) {
             }
         })
-    }
-
-    fun getCalledUserData(userId: String): LiveData<UserData> {
-
-        val retValue = MutableLiveData<UserData>()
-
-
-        val rtewq = mapCalledUser[userId]?.toList()
-        rtewq?.let { retValue.postValue(UserData(id = userId, userName = it[0], tokenFCM = it[1])) }
-        return retValue
     }
 }
 

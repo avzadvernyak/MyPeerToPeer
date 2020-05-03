@@ -29,12 +29,12 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/mainToolbar" />
     <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/callFAB"
+        android:id="@+id/renewListUserFAB"
         style="@style/Widget.MaterialComponents.FloatingActionButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_margin="20dp"
+        android:layout_margin="16dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:srcCompat="@android:drawable/ic_menu_call" />
+        app:srcCompat="@drawable/ic_autorenew" />
 </androidx.constraintlayout.widget.ConstraintLayout>

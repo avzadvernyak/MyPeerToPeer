@@ -5,6 +5,7 @@ import androidx.lifecycle.LifecycleService
 import com.google.gson.Gson
 import m.kampukter.mypeertopeer.data.NegotiationEvent
 import m.kampukter.mypeertopeer.data.NegotiationMessage
+import m.kampukter.mypeertopeer.data.UserShort
 import m.kampukter.mypeertopeer.myId
 import okhttp3.*
 import java.util.concurrent.TimeUnit
@@ -73,6 +74,11 @@ class WebSocketNegotiationAPI : NegotiationAPI, LifecycleService() {
                         )
                     )
                 }
+                NegotiationMessage.TYPE_USERS ->  message.users?.let {
+                    onNegotiationEvent?.invoke(
+                        NegotiationEvent.Users(it)
+                    )
+                }
             }
 
         }
@@ -83,6 +89,7 @@ class WebSocketNegotiationAPI : NegotiationAPI, LifecycleService() {
     }
 
     override fun connect() {
+        Log.d("blablabla", "WS  Connecting...")
         //.url("ws://176.37.84.130:8080/$myId")
         //.url("ws://192.168.0.69:8080/$myId")
         //.url("ws://109.254.66.131:8080/$myId")
@@ -90,6 +97,7 @@ class WebSocketNegotiationAPI : NegotiationAPI, LifecycleService() {
             Request.Builder()
                 //.url("ws://176.37.84.130:9517/$myId")
                 .url("ws://192.168.0.69:8080/$myId")
+                //.url("ws://109.254.66.131:8080/$myId")
                 .build(),
             webSocketListener
         )
@@ -139,4 +147,36 @@ class WebSocketNegotiationAPI : NegotiationAPI, LifecycleService() {
         )
     }
 
+    override fun sendNewUser(user: UserShort) {
+        webSocket?.send(
+            gson.toJson(
+                NegotiationMessage(
+                    type = NegotiationMessage.TYPE_NEWUSER,
+                    user = user
+                )
+            )
+        )
+    }
+
+    override fun sendUpdateUser(user: UserShort) {
+        webSocket?.send(
+            gson.toJson(
+                NegotiationMessage(
+                    type = NegotiationMessage.TYPE_UPDATEUSER,
+                    user = user
+                )
+            )
+        )
+    }
+
+    override fun sendInvitation(to: String) {
+        webSocket?.send(
+            gson.toJson(
+                NegotiationMessage(
+                    type = NegotiationMessage.TYPE_INVITATION,
+                    to = to
+                )
+            )
+        )
+    }
 }

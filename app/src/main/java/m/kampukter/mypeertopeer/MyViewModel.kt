@@ -1,6 +1,5 @@
 package m.kampukter.mypeertopeer
 
-import android.util.Log
 import androidx.lifecycle.*
 import m.kampukter.mypeertopeer.data.InfoLocalVideoCapture
 import m.kampukter.mypeertopeer.data.NegotiationEvent
@@ -11,7 +10,7 @@ class MyViewModel(private val repository: RTCRepository) : ViewModel() {
 
     val listCalledUserLiveData = repository.listCalledUserLiveData
 
-    val userIdsLiveData = repository.userIdsLiveData
+    private val userIdsLiveData = repository.userIdsLiveData
     private val _negotiationEvent = repository.negotiationEvent
 
     private val infoLocalVideoCaptureLiveData = MutableLiveData<InfoLocalVideoCapture>()
@@ -44,12 +43,25 @@ class MyViewModel(private val repository: RTCRepository) : ViewModel() {
     }
 
     private val calledUserId = MutableLiveData<String>()
-    val calledUserDataLiveData: LiveData<UserData> =
-        Transformations.switchMap(calledUserId) { userId -> repository.getCalledUserData(userId) }
-
     fun setUserDataId(userId: String?) {
         calledUserId.postValue(userId)
-        Log.d("blablabla", "setUserDataId $userId")
+    }
+
+    private val calledUserDataLiveData: LiveData<UserData> = MediatorLiveData<UserData>().apply {
+        var userId: String? = null
+        var listUserData = listOf<UserData>()
+        addSource(calledUserId) {
+            userId = it
+            val result = listUserData.filter { user -> user.id == userId }
+            if (result.isNotEmpty()) postValue(result.first())
+        }
+        addSource(listCalledUserLiveData) { listUser ->
+            listUserData = listUser
+            userId?.let {
+                val result = listUser.filter { user -> user.id == userId }
+                if (result.isNotEmpty()) postValue(result.first())
+            }
+        }
     }
 
     sealed class UserStatusEvent {
@@ -76,5 +88,11 @@ class MyViewModel(private val repository: RTCRepository) : ViewModel() {
     }
 
     // Код работы с базой пользователей
-    fun saveUserData(userData: UserData) {repository.saveUsersData(userData)}
+    fun saveUserData(userData: UserData) {
+        repository.saveUsersData(userData)
+    }
+
+    fun getUsersData() {
+        repository.getUsersData()
+    }
 }

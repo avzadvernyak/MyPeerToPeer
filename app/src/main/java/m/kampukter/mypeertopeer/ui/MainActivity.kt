@@ -3,13 +3,12 @@ package m.kampukter.mypeertopeer.ui
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
-import android.view.View
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Observer
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.google.android.gms.tasks.OnCompleteListener
+import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.iid.FirebaseInstanceId
 import kotlinx.android.synthetic.main.main_activity.*
 import m.kampukter.mypeertopeer.MyViewModel
@@ -37,12 +36,11 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        getFCMToken()
-
         setContentView(R.layout.main_activity)
         setSupportActionBar(mainToolbar).apply {
             title = getString(R.string.main_toolbar_title, myName)
         }
+
         viewModel.negotiationEvent.observe(
             this,
             Observer {
@@ -64,7 +62,7 @@ class MainActivity : AppCompatActivity() {
                 }
             })
         viewModel.listCalledUserLiveData.observe(this, Observer { listCalledUser ->
-            usersAdapter?.setList(listCalledUser)
+            usersAdapter?.setList(listCalledUser.filter { it.id != myId })
         })
         usersAdapter = UsersAdapter { item ->
             startActivity(
@@ -79,32 +77,18 @@ class MainActivity : AppCompatActivity() {
             layoutManager = LinearLayoutManager(context, RecyclerView.VERTICAL, false)
             adapter = usersAdapter
         }
-        callFAB.visibility = View.INVISIBLE
-        /*callFAB.setOnClickListener {
-            startActivity(
-                Intent(this, CallActivity::class.java).putExtra(
-                    EXTRA_MESSAGE_CANDIDATE,
-                    ""
-                )
-            )
-        }*/
+        renewListUserFAB.setOnClickListener {
+            viewModel.getUsersData()
+            Snackbar.make(
+                main_activity,
+                getString(R.string.renew),
+                Snackbar.LENGTH_LONG
+            ).show()
+        }
     }
 
     override fun onDestroy() {
         super.onDestroy()
         Log.d("blablabla", "Destroy MainActivity")
-    }
-
-    private fun getFCMToken() {
-        FirebaseInstanceId.getInstance().instanceId
-            .addOnCompleteListener(OnCompleteListener { task ->
-                if (!task.isSuccessful) {
-                    Log.d("blablabla", "getInstanceId failed $task.exception")
-                    return@OnCompleteListener
-                }
-                // Get new Instance ID token
-                val token = task.result?.token
-                viewModel.saveUserData(UserData(id = myId!!, userName = "$myName", tokenFCM = token!!))
-            })
     }
 }

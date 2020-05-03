@@ -2,6 +2,10 @@ package m.kampukter.mypeertopeer.data
 
 sealed class NegotiationEvent {
 
+    data class Users(
+        val users: List<UserShort>
+    ) : NegotiationEvent()
+
     data class Discovery(
         val userIds: List<String>
     ) : NegotiationEvent()

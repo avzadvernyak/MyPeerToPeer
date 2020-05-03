@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.text.InputType
 import android.widget.EditText
 import androidx.fragment.app.DialogFragment
+import m.kampukter.mypeertopeer.WebSocketService
 import m.kampukter.mypeertopeer.privateNotesApplication
 
 class NewUserDialogFragment: DialogFragment() {
@@ -25,6 +26,8 @@ class NewUserDialogFragment: DialogFragment() {
                 val keyTwo = (1..24).map { stringCharacters1.random() }.joinToString("")
 
                 privateNotesApplication.saveMyName(input.text.toString(),"$keyOne-${(1..9).random()}-$keyTwo")
+                //val serviceIntent = Intent(, WebSocketService::class.java)
+                //startService(serviceIntent)
                 startActivity(
                     Intent(
                         activity,
