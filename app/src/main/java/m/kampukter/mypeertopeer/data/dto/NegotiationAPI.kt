@@ -1,12 +1,7 @@
 package m.kampukter.mypeertopeer.data.dto
 
-import androidx.lifecycle.LiveData
 import m.kampukter.mypeertopeer.data.NegotiationEvent
-import m.kampukter.mypeertopeer.data.NegotiationMessage
-import m.kampukter.mypeertopeer.data.UserShort
-import org.webrtc.IceCandidate
-import org.webrtc.SessionDescription
-import java.net.URL
+import m.kampukter.mypeertopeer.data.UserData
 
 interface NegotiationAPI {
 
@@ -19,8 +14,8 @@ interface NegotiationAPI {
     fun sendOffer(to: String, sdp: String)
     fun sendAnswer(to: String, sdp: String)
     fun sendCandidate(to: String, sdp: String, sdpMid: String, sdpMLineIndex: Int)
-    fun sendNewUser(user: UserShort)
-    fun sendUpdateUser(user: UserShort)
+    fun sendNewUser(user: UserData)
+    fun sendUpdateUser(user: UserData)
     fun sendInvitation(to: String)
 
 }

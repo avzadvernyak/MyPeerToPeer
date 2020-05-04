@@ -8,13 +8,10 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Observer
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.google.android.material.snackbar.Snackbar
-import com.google.firebase.iid.FirebaseInstanceId
 import kotlinx.android.synthetic.main.main_activity.*
 import m.kampukter.mypeertopeer.MyViewModel
 import m.kampukter.mypeertopeer.R
 import m.kampukter.mypeertopeer.data.NegotiationEvent
-import m.kampukter.mypeertopeer.data.UserData
 import m.kampukter.mypeertopeer.myId
 import m.kampukter.mypeertopeer.myName
 import m.kampukter.mypeertopeer.ui.CallActivity.Companion.EXTRA_MESSAGE_CANDIDATE
@@ -76,14 +73,6 @@ class MainActivity : AppCompatActivity() {
         with(usersRecyclerView) {
             layoutManager = LinearLayoutManager(context, RecyclerView.VERTICAL, false)
             adapter = usersAdapter
-        }
-        renewListUserFAB.setOnClickListener {
-            viewModel.getUsersData()
-            Snackbar.make(
-                main_activity,
-                getString(R.string.renew),
-                Snackbar.LENGTH_LONG
-            ).show()
         }
     }
 

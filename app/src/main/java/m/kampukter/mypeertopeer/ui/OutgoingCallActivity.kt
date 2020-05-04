@@ -40,7 +40,7 @@ class OutgoingCallActivity : AppCompatActivity() {
                     Log.d("blablabla", "UserDisconnected ${userStatus.user.userName}")
                     calledUserTextView.text = userStatus.user.userName
                     callFCMFAB.setOnClickListener {
-                        viewModel.sendFCM(userStatus.user.tokenFCM)
+                        viewModel.sendFCM(userStatus.user.id)
                         callFCMFAB.visibility = View.INVISIBLE
                         hangUpFAB.visibility = View.VISIBLE
                     }

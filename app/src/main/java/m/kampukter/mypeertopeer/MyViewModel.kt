@@ -38,8 +38,8 @@ class MyViewModel(private val repository: RTCRepository) : ViewModel() {
         }
     }
 
-    fun sendFCM(token: String) {
-        repository.sendFCMMessage(token)
+    fun sendFCM(id: String) {
+        repository.sendFCMMessage(id)
     }
 
     private val calledUserId = MutableLiveData<String>()
@@ -85,14 +85,5 @@ class MyViewModel(private val repository: RTCRepository) : ViewModel() {
                 else postValue(UserStatusEvent.UserDisconnected(it))
             }
         }
-    }
-
-    // Код работы с базой пользователей
-    fun saveUserData(userData: UserData) {
-        repository.saveUsersData(userData)
-    }
-
-    fun getUsersData() {
-        repository.getUsersData()
     }
 }

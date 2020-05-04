@@ -9,12 +9,12 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleObserver
 import androidx.lifecycle.OnLifecycleEvent
 import androidx.lifecycle.ProcessLifecycleOwner
+import androidx.room.Room
 import com.google.android.gms.tasks.OnCompleteListener
 import com.google.firebase.iid.FirebaseInstanceId
+import m.kampukter.mypeertopeer.data.dao.MyDatabase
 import m.kampukter.mypeertopeer.data.RTCRepository
 import m.kampukter.mypeertopeer.data.UserData
-import m.kampukter.mypeertopeer.data.dto.FCMRestAPI
-import m.kampukter.mypeertopeer.data.dto.MyFCMRestAPI
 import m.kampukter.mypeertopeer.data.dto.WebSocketNegotiationAPI
 import m.kampukter.mypeertopeer.data.dto.NegotiationAPI
 import m.kampukter.mypeertopeer.ui.UserActivity
@@ -36,8 +36,8 @@ class MainApplication : Application() {
 
     lateinit var serviceIntent: Intent
     private val module = module {
+        single { Room.inMemoryDatabaseBuilder(androidContext(), MyDatabase::class.java).build() }
         single<NegotiationAPI> { WebSocketNegotiationAPI() }
-        single<FCMRestAPI> { MyFCMRestAPI() }
         single { RTCRepository(this@MainApplication, get(), get()) }
         viewModel { MyViewModel(get()) }
     }
@@ -95,6 +95,7 @@ class MainApplication : Application() {
                 ?.putString(APP_PREFERENCES_USER_ID, userId)
                 ?.apply()
             val repository by inject<RTCRepository>()
+            startService(serviceIntent)
             FirebaseInstanceId.getInstance().instanceId
                 .addOnCompleteListener(OnCompleteListener { task ->
                     if (!task.isSuccessful) {
@@ -104,16 +105,16 @@ class MainApplication : Application() {
                     // Get new Instance ID token
                     val token = task.result?.token
                     token?.let {
-                        repository.saveUsersData(
+                        repository.addUsersData(
                             UserData(
                                 id = userId,
                                 userName = userName,
-                                tokenFCM = it
+                                token = it
                             )
                         )
                     }
                 })
-            startService(serviceIntent)
+
         } else Log.e("blablabla", "Login is bad")
     }
 

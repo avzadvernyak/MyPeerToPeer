@@ -15,6 +15,7 @@ import com.google.gson.Gson
 import m.kampukter.mypeertopeer.data.RTCRepository
 import m.kampukter.mypeertopeer.data.UserData
 import m.kampukter.mypeertopeer.ui.CallActivity
+import m.kampukter.mypeertopeer.ui.MainActivity
 import org.koin.android.ext.android.inject
 
 data class FcmDataMessage(val from_id: String, val from_name: String, val title: String)
@@ -24,7 +25,7 @@ class MyFCMService : FirebaseMessagingService() {
     override fun onNewToken(token: String) {
         Log.d("blablabla", "Refreshed token: $token")
         myId?.let {
-            repository.saveUsersData(UserData(id = it, userName = "$myName", tokenFCM = token))
+            repository.saveUsersData(UserData(id = it, userName = "$myName", token = token))
         }
     }
 
@@ -36,12 +37,14 @@ class MyFCMService : FirebaseMessagingService() {
     }
 
     private fun sendNotification(messageBody: FcmDataMessage) {
-        val intent = Intent(this, CallActivity::class.java).apply {
+        val intent = Intent(this, MainActivity::class.java)
+        /*val intent = Intent(this, CallActivity::class.java).apply {
+            Log.d("blablabla", "Принимаем звонок - сервис")
             putExtra(
                 CallActivity.EXTRA_MESSAGE_CANDIDATE,
                 messageBody.from_id
             )
-        }
+        }*/
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
 
         val pendingIntent = PendingIntent.getActivity(

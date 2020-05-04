@@ -7,9 +7,9 @@ data class NegotiationMessage(
     val sdp: String? = null,
     val ids: List<String>? = null,
     val sdpMid: String? = null,
-    val sdpMLineIndex: Int = 0,
-    val users: List<UserShort>? = null,
-    val user: UserShort? = null
+    val sdpMLineIndex: Int? = null,
+    val users: List<UserData>? = null,
+    val user: UserData? = null
 ){
     companion object {
         const val TYPE_DISCOVERY = "discovery"
@@ -18,8 +18,8 @@ data class NegotiationMessage(
         const val TYPE_CANDIDATE = "candidate"
         const val TYPE_USERS = "users"
         const val TYPE_INVITATION="invitation"
-        const val TYPE_NEWUSER="newuser"
-        const val TYPE_UPDATEUSER="updateuser"
+        const val TYPE_NEW_USER="newuser"
+        const val TYPE_UPDATE_USER="updateuser"
     }
 
 }

@@ -1,25 +1,17 @@
 package m.kampukter.mypeertopeer.data
 
 import android.app.Application
-import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import m.kampukter.mypeertopeer.data.dto.FCMRestAPI
+import m.kampukter.mypeertopeer.data.dao.UsersInfoDao
 import m.kampukter.mypeertopeer.data.dto.NegotiationAPI
-import m.kampukter.mypeertopeer.data.dto.UsersInfoAPI
-import retrofit2.Callback
 import m.kampukter.mypeertopeer.rtc.CallSession
-import okhttp3.ResponseBody
-import retrofit2.Call
-import retrofit2.Response
 
 class RTCRepository(
     private val context: Application,
     private val negotiationAPI: NegotiationAPI,
-    private val myFCMRestAPI: FCMRestAPI
+    private val myUsersDao: UsersInfoDao
 ) {
-
-    private val apiInfoSensor = UsersInfoAPI.create()
 
     private val _listCalledUserLiveData = MutableLiveData<List<UserData>>()
     val listCalledUserLiveData: LiveData<List<UserData>>
@@ -57,11 +49,9 @@ class RTCRepository(
     }
 
     init {
-        //Получаем данные всех зарегистрированных в приложении пользователей
-        getUsersData()
-
         negotiationAPI.onNegotiationEvent = { event ->
             when (event) {
+                is NegotiationEvent.Users -> _listCalledUserLiveData.postValue(event.users)
                 is NegotiationEvent.Discovery -> _userIdsLiveData.postValue(event.userIds)
                 is NegotiationEvent.Offer -> {
                     receivedOffer = event.sdp
@@ -143,37 +133,15 @@ class RTCRepository(
         listIceCandidateInfo.clear()
     }
 
-    fun sendFCMMessage(token: String) {
-        myFCMRestAPI.send(token)
-    }
-
-    fun getUsersData() {
-        val call = apiInfoSensor.getUsersData()
-        call.enqueue(object : Callback<List<UserData>> {
-            override fun onResponse(
-                call: Call<List<UserData>>,
-                response: Response<List<UserData>>
-            ) {
-                response.body().let { _listCalledUserLiveData.postValue(it) }
-            }
-
-            override fun onFailure(call: Call<List<UserData>>, t: Throwable) {
-                t.message?.let {
-                    Log.d("blablabla", "Retrofit2 onFailure GET")
-                }
-            }
-        })
+    fun sendFCMMessage(id: String) {
+        negotiationAPI.sendInvitation(id)
     }
 
     fun saveUsersData(userData: UserData) {
-        val call = apiInfoSensor.saveUserInfo(userData.id, userData.userName, userData.tokenFCM)
-        call.enqueue(object : Callback<ResponseBody> {
-            override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
-                Log.d("blablabla", "Retrofit2 onFailure POST")
-            }
-            override fun onResponse(call: Call<ResponseBody>, response: Response<ResponseBody>) {
-            }
-        })
+        negotiationAPI.sendUpdateUser(userData)
+    }
+    fun addUsersData(userData: UserData) {
+        negotiationAPI.sendNewUser(userData)
     }
 }
 

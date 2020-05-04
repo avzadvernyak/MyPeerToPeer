@@ -103,7 +103,8 @@ class CallActivity : AppCompatActivity() {
     }
 
     private fun onCameraPermissionGranted() {
-        lastUser?.let { viewModel.startCall(InfoLocalVideoCapture(it, local_view, remote_view)) }
+        lastUser?.let {
+            viewModel.startCall(InfoLocalVideoCapture(it, local_view, remote_view)) }
 
     }
 

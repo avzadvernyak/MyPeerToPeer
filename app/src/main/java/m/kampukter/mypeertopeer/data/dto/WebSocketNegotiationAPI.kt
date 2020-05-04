@@ -5,7 +5,7 @@ import androidx.lifecycle.LifecycleService
 import com.google.gson.Gson
 import m.kampukter.mypeertopeer.data.NegotiationEvent
 import m.kampukter.mypeertopeer.data.NegotiationMessage
-import m.kampukter.mypeertopeer.data.UserShort
+import m.kampukter.mypeertopeer.data.UserData
 import m.kampukter.mypeertopeer.myId
 import okhttp3.*
 import java.util.concurrent.TimeUnit
@@ -38,6 +38,7 @@ class WebSocketNegotiationAPI : NegotiationAPI, LifecycleService() {
         override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
             super.onFailure(webSocket, t, response)
             Log.d("blablabla", "WS  Failure ${t.message}")
+            onNegotiationEvent?.invoke(NegotiationEvent.HangUp)
         }
 
         override fun onMessage(webSocket: WebSocket, text: String) {
@@ -63,14 +64,15 @@ class WebSocketNegotiationAPI : NegotiationAPI, LifecycleService() {
                 NegotiationMessage.TYPE_CANDIDATE -> {
                     val sdp = message.sdp
                     val sdpMid = message.sdpMid
-                    if (sdp == null || sdpMid == null) return
+                    val sdpMLineIndex = message.sdpMLineIndex
+                    if (sdp == null || sdpMid == null||sdpMLineIndex==null) return
                     onNegotiationEvent?.invoke(
                         NegotiationEvent.IceCandidate(
                             "",
                             "",
                             sdp,
                             sdpMid,
-                            message.sdpMLineIndex
+                            sdpMLineIndex
                         )
                     )
                 }
@@ -96,7 +98,7 @@ class WebSocketNegotiationAPI : NegotiationAPI, LifecycleService() {
         webSocket = okHttpClient.newWebSocket(
             Request.Builder()
                 //.url("ws://176.37.84.130:9517/$myId")
-                .url("ws://192.168.0.69:8080/$myId")
+                .url("ws://192.168.0.100:8080/$myId")
                 //.url("ws://109.254.66.131:8080/$myId")
                 .build(),
             webSocketListener
@@ -147,22 +149,22 @@ class WebSocketNegotiationAPI : NegotiationAPI, LifecycleService() {
         )
     }
 
-    override fun sendNewUser(user: UserShort) {
+    override fun sendNewUser(user: UserData) {
         webSocket?.send(
             gson.toJson(
                 NegotiationMessage(
-                    type = NegotiationMessage.TYPE_NEWUSER,
+                    type = NegotiationMessage.TYPE_NEW_USER,
                     user = user
                 )
             )
         )
     }
 
-    override fun sendUpdateUser(user: UserShort) {
+    override fun sendUpdateUser(user: UserData) {
         webSocket?.send(
             gson.toJson(
                 NegotiationMessage(
-                    type = NegotiationMessage.TYPE_UPDATEUSER,
+                    type = NegotiationMessage.TYPE_UPDATE_USER,
                     user = user
                 )
             )
